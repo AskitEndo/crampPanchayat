@@ -53,28 +53,117 @@ export const EMOJI_DESCRIPTIONS: Record<EmojiType, string> = {
   "🌱": "Seedling",
 };
 
-// Symptom Types and Descriptions
+// Symptom Types and Descriptions - Organized with common symptoms first
 export const SYMPTOMS: Record<
   SymptomType,
-  { name: string; emoji: string; category: string }
+  { name: string; emoji: string; category: string; priority: number }
 > = {
-  cramps: { name: "Cramps", emoji: "🩸", category: "Physical" },
-  headache: { name: "Headache", emoji: "🤕", category: "Physical" },
-  mood_swings: { name: "Mood Swings", emoji: "😤", category: "Emotional" },
-  bloating: { name: "Bloating", emoji: "🤰", category: "Physical" },
+  // Most Common - Priority 1 (displayed first)
+  cramps: { name: "Cramps", emoji: "🩸", category: "Physical", priority: 1 },
+  headache: {
+    name: "Headache",
+    emoji: "🤕",
+    category: "Physical",
+    priority: 1,
+  },
+  mood_swings: {
+    name: "Mood Swings",
+    emoji: "😤",
+    category: "Emotional",
+    priority: 1,
+  },
+  bloating: {
+    name: "Bloating",
+    emoji: "🤰",
+    category: "Physical",
+    priority: 1,
+  },
   breast_tenderness: {
     name: "Breast Tenderness",
     emoji: "💔",
     category: "Physical",
+    priority: 1,
   },
-  fatigue: { name: "Fatigue", emoji: "😴", category: "Physical" },
-  nausea: { name: "Nausea", emoji: "🤢", category: "Physical" },
-  acne: { name: "Acne", emoji: "😣", category: "Physical" },
-  food_cravings: { name: "Food Cravings", emoji: "🍫", category: "Physical" },
-  backache: { name: "Back Ache", emoji: "🦴", category: "Physical" },
-  insomnia: { name: "Insomnia", emoji: "🌃", category: "Physical" },
-  diarrhea: { name: "Diarrhea", emoji: "💧", category: "Physical" },
-  constipation: { name: "Constipation", emoji: "🚽", category: "Physical" },
+  fatigue: { name: "Fatigue", emoji: "😴", category: "Physical", priority: 1 },
+
+  // Common - Priority 2
+  nausea: { name: "Nausea", emoji: "🤢", category: "Physical", priority: 2 },
+  acne: { name: "Acne", emoji: "😣", category: "Physical", priority: 2 },
+  food_cravings: {
+    name: "Food Cravings",
+    emoji: "🍫",
+    category: "Physical",
+    priority: 2,
+  },
+  backache: {
+    name: "Back Ache",
+    emoji: "🦴",
+    category: "Physical",
+    priority: 2,
+  },
+  insomnia: {
+    name: "Insomnia",
+    emoji: "🌃",
+    category: "Physical",
+    priority: 2,
+  },
+
+  // Less Common - Priority 3
+  diarrhea: {
+    name: "Diarrhea",
+    emoji: "💧",
+    category: "Physical",
+    priority: 3,
+  },
+  constipation: {
+    name: "Constipation",
+    emoji: "🚽",
+    category: "Physical",
+    priority: 3,
+  },
+  hot_flashes: {
+    name: "Hot Flashes",
+    emoji: "🔥",
+    category: "Physical",
+    priority: 3,
+  },
+  cold_chills: {
+    name: "Cold Chills",
+    emoji: "🥶",
+    category: "Physical",
+    priority: 3,
+  },
+  dizziness: {
+    name: "Dizziness",
+    emoji: "😵",
+    category: "Physical",
+    priority: 3,
+  },
+  anxiety: { name: "Anxiety", emoji: "😰", category: "Emotional", priority: 3 },
+  depression: {
+    name: "Low Mood",
+    emoji: "😔",
+    category: "Emotional",
+    priority: 3,
+  },
+  irritability: {
+    name: "Irritability",
+    emoji: "😠",
+    category: "Emotional",
+    priority: 3,
+  },
+  joint_pain: {
+    name: "Joint Pain",
+    emoji: "🦵",
+    category: "Physical",
+    priority: 3,
+  },
+  tender_skin: {
+    name: "Sensitive Skin",
+    emoji: "🤲",
+    category: "Physical",
+    priority: 3,
+  },
 };
 
 // Intensity Levels

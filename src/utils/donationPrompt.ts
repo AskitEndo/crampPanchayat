@@ -20,10 +20,18 @@ export class DonationPromptManager {
   /**
    * Check if donation prompts are enabled for the active profile
    */
-  async isDonationPromptsEnabled(): Promise<boolean> {
+  async isDonationPromptsEnabled(
+    forFirstProfile: boolean = false
+  ): Promise<boolean> {
     try {
       const storage = StorageService.getInstance();
       const activeProfile = await storage.getActiveProfile();
+
+      // For first profile creation, default to enabled since no profile exists yet
+      if (forFirstProfile && !activeProfile) {
+        return true;
+      }
+
       return activeProfile?.settings.donationPrompts ?? true;
     } catch (error) {
       console.error("Error checking donation prompts setting:", error);
@@ -42,7 +50,8 @@ export class DonationPromptManager {
       | "cycle_completed"
       | "period_confirmed"
   ): Promise<void> {
-    const isEnabled = await this.isDonationPromptsEnabled();
+    const isFirstProfile = reason === "profile_created";
+    const isEnabled = await this.isDonationPromptsEnabled(isFirstProfile);
 
     if (isEnabled) {
       console.log(`Showing donation prompt for: ${reason}`);

@@ -1,7 +1,7 @@
 // Settings Screen - Individual profile settings and data management
 // Allows export/delete of current profile data only
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,10 +13,11 @@ import {
   Switch,
   StatusBar,
   Platform,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
@@ -30,20 +31,37 @@ const SettingsScreen: React.FC = () => {
     useProfiles();
 
   const [profileStats, setProfileStats] = useState<any>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Load profile statistics
+  // Force refresh when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfiles();
+    }, [refreshProfiles])
+  );
+
+  // Load profile statistics whenever activeProfile changes
   useEffect(() => {
     if (activeProfile) {
       const stats = {
         cyclesTracked: activeProfile.cycles.length,
-        symptomsLogged: activeProfile.symptoms.length,
-        notesWritten: activeProfile.notes.length,
+        symptomsLogged: activeProfile.symptoms?.length || 0,
+        notesWritten: activeProfile.notes?.length || 0,
         createdDate: new Date(activeProfile.createdAt).toLocaleDateString(),
         lastActive: new Date(activeProfile.lastActive).toLocaleDateString(),
       };
       setProfileStats(stats);
+    } else {
+      setProfileStats(null);
     }
   }, [activeProfile]);
+
+  // Pull to refresh handler
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshProfiles();
+    setRefreshing(false);
+  };
 
   const handleExportProfileData = async () => {
     if (!activeProfile) {
@@ -177,6 +195,7 @@ const SettingsScreen: React.FC = () => {
           [settingKey]: value,
         },
       });
+      // Force refresh to update UI immediately
       await refreshProfiles();
     } catch (error) {
       console.error("Failed to update setting:", error);
@@ -234,7 +253,18 @@ const SettingsScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="white"
+              colors={["#E91E63"]}
+            />
+          }
+        >
           {/* Profile Info */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Profile Information</Text>
@@ -245,7 +275,7 @@ const SettingsScreen: React.FC = () => {
                 </Text>
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>
-                    {activeProfile.name || "Unnamed Profile"}
+                    {activeProfile.name || `${activeProfile.emoji} Profile`}
                   </Text>
                   <Text style={styles.profileSubtext}>
                     Created {profileStats?.createdDate}

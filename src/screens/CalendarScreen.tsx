@@ -79,7 +79,7 @@ const CalendarScreen: React.FC = () => {
     console.log("Symptoms:", activeProfile.symptoms.length);
     console.log("Notes:", activeProfile.notes.length);
 
-    // Add cycle records (period days)
+    // Add cycle records (period days) - normalize dates
     activeProfile.cycles.forEach((cycle, cycleIndex) => {
       console.log(
         `Processing cycle ${cycleIndex + 1}:`,
@@ -87,15 +87,20 @@ const CalendarScreen: React.FC = () => {
         "period days"
       );
       cycle.periodDays.forEach((periodDay) => {
+        // Normalize date to YYYY-MM-DD format to avoid timezone issues
+        const normalizedDate = periodDay.includes("T")
+          ? periodDay.split("T")[0]
+          : periodDay;
+
         logs.push({
-          date: periodDay,
+          date: normalizedDate,
           type: "period",
           data: { cycleId: cycle.id, isStart: periodDay === cycle.startDate },
         });
       });
     });
 
-    // Add symptom records from profile.symptoms array
+    // Add symptom records from profile.symptoms array - normalize dates
     if (activeProfile.symptoms && activeProfile.symptoms.length > 0) {
       console.log("Processing symptoms:", activeProfile.symptoms.length);
       activeProfile.symptoms.forEach((symptom, index) => {
@@ -105,15 +110,21 @@ const CalendarScreen: React.FC = () => {
           symptom.symptoms?.length || 0,
           "symptoms"
         );
+
+        // Normalize date to YYYY-MM-DD format
+        const normalizedDate = symptom.date.includes("T")
+          ? symptom.date.split("T")[0]
+          : symptom.date;
+
         logs.push({
-          date: symptom.date,
+          date: normalizedDate,
           type: "symptom",
           data: symptom,
         });
       });
     }
 
-    // Add notes from profile.notes array (standalone notes only)
+    // Add notes from profile.notes array (standalone notes only) - normalize dates
     if (activeProfile.notes && activeProfile.notes.length > 0) {
       console.log("Processing profile notes:", activeProfile.notes.length);
       activeProfile.notes.forEach((note, index) => {
@@ -122,8 +133,14 @@ const CalendarScreen: React.FC = () => {
           note.date,
           note.note?.substring(0, 50) || "No note"
         );
+
+        // Normalize date to YYYY-MM-DD format
+        const normalizedDate = note.date.includes("T")
+          ? note.date.split("T")[0]
+          : note.date;
+
         logs.push({
-          date: note.date,
+          date: normalizedDate,
           type: "note",
           data: {
             note: note.note,
@@ -140,12 +157,29 @@ const CalendarScreen: React.FC = () => {
     // Skip adding cycle notes separately since they're now attached to symptom records
     // This prevents duplicate display of notes that are attached to symptoms
 
-    // Sort by date (newest first)
-    logs.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    // Sort by date (newest first - most recent at top)
+    logs.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+
+      // Ensure valid dates and sort newest first
+      if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) {
+        console.warn("Invalid date found in logs:", { a: a.date, b: b.date });
+        return 0;
+      }
+
+      return dateB.getTime() - dateA.getTime(); // Newest first (descending)
+    });
 
     console.log("Total logs generated:", logs.length);
+    console.log(
+      "First 3 logs (should be newest):",
+      logs.slice(0, 3).map((l) => ({ date: l.date, type: l.type }))
+    );
+    console.log(
+      "Last 3 logs (should be oldest):",
+      logs.slice(-3).map((l) => ({ date: l.date, type: l.type }))
+    );
     console.log("Log types:", {
       period: logs.filter((l) => l.type === "period").length,
       symptom: logs.filter((l) => l.type === "symptom").length,

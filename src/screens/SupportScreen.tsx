@@ -126,10 +126,40 @@ const SupportScreen: React.FC = () => {
   const showDonationNotification = () => {
     Alert.alert(
       "💝 Consider Supporting CrampPanchayat",
-      "Your support helps keep this app free and privacy-focused for everyone. Even a small contribution makes a big difference!",
+      "Your support helps keep this app free and privacy-focused for everyone. Even a small contribution makes a big difference!\n\nYou can disable these prompts in Settings → Donation Prompts.",
       [
-        { text: "Maybe Later", style: "cancel" },
-        { text: "Support Now ❤️", onPress: () => scrollToDonationSection() },
+        {
+          text: "Maybe Later",
+          style: "cancel",
+          onPress: () => {
+            if (isDonationPrompt) {
+              navigation.navigate("Main");
+            }
+          },
+        },
+        {
+          text: "Donate Now ❤️",
+          onPress: () => {
+            scrollToDonationSection();
+            // Show UPI app selection
+            setTimeout(() => {
+              Alert.alert(
+                "Open UPI App",
+                "Scan the QR code with any UPI app (PhonePe, GPay, Paytm, BHIM, etc.)",
+                [
+                  {
+                    text: "Done",
+                    onPress: () => {
+                      if (isDonationPrompt) {
+                        navigation.navigate("Main");
+                      }
+                    },
+                  },
+                ]
+              );
+            }, 1000);
+          },
+        },
       ]
     );
   };

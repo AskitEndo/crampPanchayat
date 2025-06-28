@@ -454,11 +454,13 @@ const HomeScreen: React.FC = () => {
           {/* No Profiles State */}
           {profiles.length === 0 && (
             <View style={styles.emptyState}>
-              <Ionicons
-                name="person-add-outline"
-                size={64}
-                color="rgba(255,255,255,0.7)"
-              />
+              <View style={styles.emptyIconContainer}>
+                <Image
+                  source={require("../assets/images/app-icon.png")}
+                  style={styles.emptyIcon}
+                  resizeMode="contain"
+                />
+              </View>
               <Text style={styles.emptyTitle}>Welcome to CrampPanchayat!</Text>
               <Text style={styles.emptySubtitle}>
                 Create your first profile to start tracking your cycle
@@ -516,14 +518,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   appIconContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 12,
-    padding: 8,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    padding: 6,
     marginRight: 12,
   },
   appIcon: {
-    width: 50,
-    height: 50,
+    width: 44,
+    height: 44,
   },
   headerTitle: {
     color: "white",
@@ -713,6 +716,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 60,
     paddingHorizontal: 40,
+  },
+  emptyIconContainer: {
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: "rgba(255, 255, 255, 0.4)",
+    padding: 16,
+    marginBottom: 20,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
   },
   emptyTitle: {
     color: "white",

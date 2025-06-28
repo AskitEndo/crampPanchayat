@@ -63,7 +63,7 @@ const ProfileSelectorScreen: React.FC = () => {
         {
           text: "Great!",
           onPress: async () => {
-            // Show donation prompt if enabled
+            // Show donation prompt if enabled for all profile creations
             await donationPromptManager.showDonationPromptIfEnabled(
               navigation,
               "profile_created"

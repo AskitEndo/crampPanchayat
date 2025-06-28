@@ -163,8 +163,21 @@ export function useProfiles(): UseProfilesReturn {
         const updatedProfiles = state.profiles.filter(
           (p) => p.id !== profileId
         );
-        const updatedActiveProfile =
+        let updatedActiveProfile =
           state.activeProfile?.id === profileId ? null : state.activeProfile;
+
+        // Auto-select the last remaining profile if we deleted the active one
+        if (
+          state.activeProfile?.id === profileId &&
+          updatedProfiles.length === 1
+        ) {
+          updatedActiveProfile = updatedProfiles[0];
+          // Also update storage to set this as active
+          await storage.setActiveProfile(updatedActiveProfile.id);
+          console.log(
+            `Auto-selected last remaining profile: ${updatedActiveProfile.emoji}`
+          );
+        }
 
         updateState({
           profiles: updatedProfiles,

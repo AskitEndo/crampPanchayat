@@ -12,6 +12,7 @@ import {
   Alert,
   Dimensions,
   TextInput,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +21,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList, EmojiType } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
 import { StorageService } from "../services/storage";
+import { donationPromptManager } from "../utils/donationPrompt";
 
 type OnboardingNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -94,9 +96,17 @@ const OnboardingScreen: React.FC = () => {
         [
           {
             text: "Continue",
-            onPress: () => {
-              // Navigate to main app
+            onPress: async () => {
+              // Navigate to main app first
               navigation.navigate("Main");
+
+              // Show donation prompt after navigation (for first profile)
+              setTimeout(async () => {
+                await donationPromptManager.showDonationPromptIfEnabled(
+                  navigation,
+                  "profile_created"
+                );
+              }, 1000);
             },
           },
         ]
@@ -124,6 +134,13 @@ const OnboardingScreen: React.FC = () => {
         >
           {/* Header */}
           <View style={styles.header}>
+            <View style={styles.appIconContainer}>
+              <Image
+                source={require("../assets/images/app-icon.png")}
+                style={styles.appIcon}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={styles.title}>Welcome to{"\n"}CrampPanchayat</Text>
             <Text style={styles.subtitle}>
               Your privacy-first period tracking companion
@@ -253,6 +270,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
     marginBottom: 30,
+  },
+  appIconContainer: {
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: "rgba(255, 255, 255, 0.4)",
+    padding: 12,
+    marginBottom: 20,
+  },
+  appIcon: {
+    width: 80,
+    height: 80,
   },
   title: {
     fontSize: 32,

@@ -85,7 +85,15 @@ export type SymptomType =
   | "backache"
   | "insomnia"
   | "diarrhea"
-  | "constipation";
+  | "constipation"
+  | "hot_flashes"
+  | "cold_chills"
+  | "dizziness"
+  | "anxiety"
+  | "depression"
+  | "irritability"
+  | "joint_pain"
+  | "tender_skin";
 
 export interface DailyNote {
   id: string;

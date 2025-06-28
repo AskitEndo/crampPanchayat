@@ -73,6 +73,19 @@ const SymptomsScreen: React.FC = () => {
     }, [refreshProfiles])
   );
 
+  // Clear form when navigating away from screen
+  useEffect(() => {
+    return () => {
+      // Cleanup function runs when component unmounts (user navigates away)
+      resetForm();
+    };
+  }, []);
+
+  // Also clear form when date changes
+  useEffect(() => {
+    resetForm();
+  }, [selectedDate]);
+
   const handleSymptomSelect = (symptomType: SymptomType) => {
     setCurrentSymptom(symptomType);
     setShowIntensityModal(true);
@@ -98,6 +111,23 @@ const SymptomsScreen: React.FC = () => {
 
   const removeSymptom = (symptomType: SymptomType) => {
     setSelectedSymptoms(selectedSymptoms.filter((s) => s.type !== symptomType));
+  };
+
+  // Helper function to completely reset the form
+  const resetForm = () => {
+    setSelectedSymptoms([]);
+    setNotes("");
+    if (notesInputRef.current) {
+      notesInputRef.current.clear();
+      notesInputRef.current.blur();
+      // Force native component to clear
+      setTimeout(() => {
+        if (notesInputRef.current) {
+          notesInputRef.current.setNativeProps({ text: "" });
+        }
+      }, 50);
+    }
+    Keyboard.dismiss();
   };
 
   const saveSymptoms = async () => {
@@ -148,21 +178,19 @@ const SymptomsScreen: React.FC = () => {
         });
       }
 
-      // Refresh profiles to get latest data BEFORE showing success alert
+      // Clear the form immediately after successful save
+      resetForm();
+
+      // Force refresh to get latest data
       await refreshProfiles();
-
-      // Clear the form immediately after successful save and refresh
-      setSelectedSymptoms([]);
-      setNotes("");
-      setSelectedDate(new Date()); // Reset to today
-
-      // Dismiss keyboard and blur input
-      Keyboard.dismiss();
-      notesInputRef.current?.blur();
 
       Alert.alert("Success", "Symptoms logged successfully!", [
         {
           text: "OK",
+          onPress: () => {
+            // Final safety check to ensure form is cleared
+            resetForm();
+          },
         },
       ]);
     } catch (error) {
@@ -178,7 +206,7 @@ const SymptomsScreen: React.FC = () => {
 
     const suggestions: string[] = [];
 
-    // Basic suggestions based on symptoms
+    // Advanced suggestions based on symptoms and intensity
     const hasHeadache = selectedSymptoms.some(
       (s) => s.type === "headache" && s.intensity >= 3
     );
@@ -186,27 +214,124 @@ const SymptomsScreen: React.FC = () => {
       (s) => s.type === "cramps" && s.intensity >= 3
     );
     const hasFatigue = selectedSymptoms.some(
-      (s) => s.type === "fatigue" && s.intensity >= 3
+      (s) => s.type === "fatigue" && s.intensity >= 2
     );
     const hasNausea = selectedSymptoms.some((s) => s.type === "nausea");
+    const hasBloating = selectedSymptoms.some((s) => s.type === "bloating");
+    const hasMoodSwings = selectedSymptoms.some(
+      (s) => s.type === "mood_swings"
+    );
+    const hasAcne = selectedSymptoms.some((s) => s.type === "acne");
+    const hasBreastTenderness = selectedSymptoms.some(
+      (s) => s.type === "breast_tenderness"
+    );
+    const hasInsomnia = selectedSymptoms.some((s) => s.type === "insomnia");
+    const hasFoodCravings = selectedSymptoms.some(
+      (s) => s.type === "food_cravings"
+    );
 
+    // Headache remedies
     if (hasHeadache) {
-      suggestions.push("💧 Stay hydrated", "🧘‍♀️ Try relaxation techniques");
+      suggestions.push(
+        "💧 Stay hydrated - drink 8-10 glasses water",
+        "🧘‍♀️ Try relaxation techniques or meditation",
+        "😴 Rest in a dark, quiet room",
+        "❄️ Apply cold compress to forehead"
+      );
     }
 
+    // Cramp relief
     if (hasCramps) {
-      suggestions.push("🔥 Apply heat therapy", "🚶‍♀️ Light exercise might help");
+      suggestions.push(
+        "🔥 Apply heat therapy (heating pad/hot water bottle)",
+        "🚶‍♀️ Light exercise like walking or yoga",
+        "🛁 Take a warm bath with Epsom salts",
+        "💊 Consider anti-inflammatory medication"
+      );
     }
 
+    // Fatigue management
     if (hasFatigue) {
-      suggestions.push("😴 Get enough rest", "🥗 Eat iron-rich foods");
+      suggestions.push(
+        "😴 Prioritize 7-9 hours of quality sleep",
+        "🥗 Eat iron-rich foods (spinach, lentils)",
+        "☕ Limit caffeine and avoid energy crashes",
+        "🌱 Take short walks for natural energy"
+      );
     }
 
+    // Nausea relief
     if (hasNausea) {
-      suggestions.push("🫖 Try ginger tea", "🍋 Small, frequent meals");
+      suggestions.push(
+        "🫖 Try ginger tea or ginger chews",
+        "🍋 Small, frequent meals throughout day",
+        "🍪 Keep plain crackers nearby",
+        "💨 Fresh air and deep breathing exercises"
+      );
     }
 
-    return suggestions.slice(0, 3); // Show max 3 suggestions
+    // Bloating relief
+    if (hasBloating) {
+      suggestions.push(
+        "🥤 Drink peppermint or chamomile tea",
+        "🚫 Avoid carbonated drinks and salty foods",
+        "🤸‍♀️ Gentle abdominal massage",
+        "🥬 Eat potassium-rich foods (bananas, avocados)"
+      );
+    }
+
+    // Mood support
+    if (hasMoodSwings) {
+      suggestions.push(
+        "🧘‍♀️ Practice mindfulness or deep breathing",
+        "📱 Connect with supportive friends/family",
+        "🎵 Listen to calming music",
+        "📝 Journal your thoughts and feelings"
+      );
+    }
+
+    // Skin care
+    if (hasAcne) {
+      suggestions.push(
+        "🧴 Use gentle, non-comedogenic skincare",
+        "🚫 Avoid touching your face frequently",
+        "💧 Stay hydrated for healthy skin",
+        "🥦 Eat antioxidant-rich foods"
+      );
+    }
+
+    // Breast tenderness
+    if (hasBreastTenderness) {
+      suggestions.push(
+        "👙 Wear a supportive, well-fitting bra",
+        "❄️ Apply cold compress for 10-15 minutes",
+        "🚫 Limit caffeine and salt intake",
+        "🤗 Use loose-fitting clothing"
+      );
+    }
+
+    // Sleep improvement
+    if (hasInsomnia) {
+      suggestions.push(
+        "📱 Limit screen time 1 hour before bed",
+        "🫖 Try chamomile tea or warm milk",
+        "🌡️ Keep bedroom cool and dark",
+        "📖 Read a book or practice relaxation"
+      );
+    }
+
+    // Food cravings
+    if (hasFoodCravings) {
+      suggestions.push(
+        "🍓 Choose dark chocolate (70%+ cacao)",
+        "🥜 Keep healthy snacks like nuts nearby",
+        "💧 Sometimes thirst feels like hunger",
+        "🍽️ Eat balanced meals to prevent cravings"
+      );
+    }
+
+    // Return unique suggestions (max 4-5 to avoid overwhelming)
+    return [...new Set(suggestions)].slice(0, 5);
   };
 
   if (!activeProfile) {
@@ -269,49 +394,83 @@ const SymptomsScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
+          {/* Suggestions Section */}
+          {selectedSymptoms.length > 0 &&
+            getSymptomSuggestions().length > 0 && (
+              <View style={styles.suggestionsSection}>
+                <Text style={styles.sectionTitle}>💡 Helpful Tips</Text>
+                <View>
+                  {getSymptomSuggestions().map((suggestion, index) => (
+                    <View key={index} style={styles.suggestionCard}>
+                      <Text style={styles.suggestionText}>{suggestion}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
           {/* Symptoms Grid */}
           <View style={styles.symptomsSection}>
             <Text style={styles.sectionTitle}>How are you feeling?</Text>
             <View style={styles.symptomsGrid}>
-              {Object.entries(SYMPTOMS).map(([key, symptom]) => {
-                const isSelected = selectedSymptoms.some((s) => s.type === key);
-                const selectedSymptom = selectedSymptoms.find(
-                  (s) => s.type === key
-                );
+              {Object.entries(SYMPTOMS)
+                .sort(([, a], [, b]) => a.priority - b.priority) // Sort by priority (common symptoms first)
+                .map(([key, symptom]) => {
+                  const isSelected = selectedSymptoms.some(
+                    (s) => s.type === key
+                  );
+                  const selectedSymptom = selectedSymptoms.find(
+                    (s) => s.type === key
+                  );
 
-                return (
-                  <TouchableOpacity
-                    key={key}
-                    style={[
-                      styles.symptomCard,
-                      isSelected && styles.selectedSymptomCard,
-                    ]}
-                    onPress={() => handleSymptomSelect(key as SymptomType)}
-                  >
-                    <Text style={styles.symptomEmoji}>{symptom.emoji}</Text>
-                    <Text style={styles.symptomName}>{symptom.name}</Text>
-                    {isSelected && selectedSymptom && (
-                      <View style={styles.intensityIndicator}>
-                        <Text style={styles.intensityText}>
-                          {INTENSITY_LEVELS[selectedSymptom.intensity].emoji}
-                        </Text>
-                        <TouchableOpacity
-                          style={styles.removeButton}
-                          onPress={() => removeSymptom(key as SymptomType)}
-                        >
-                          <Ionicons name="close" size={16} color="#fff" />
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.symptomCard,
+                        isSelected && styles.selectedSymptomCard,
+                      ]}
+                      onPress={() => handleSymptomSelect(key as SymptomType)}
+                    >
+                      <Text style={styles.symptomEmoji}>{symptom.emoji}</Text>
+                      <Text style={styles.symptomName}>{symptom.name}</Text>
+                      {isSelected && selectedSymptom && (
+                        <View style={styles.intensityIndicator}>
+                          <Text style={styles.intensityText}>
+                            {INTENSITY_LEVELS[selectedSymptom.intensity].emoji}
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.removeButton}
+                            onPress={() => removeSymptom(key as SymptomType)}
+                          >
+                            <Ionicons name="close" size={16} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
             </View>
           </View>
 
           {/* Notes Section */}
           <View style={styles.notesSection}>
-            <Text style={styles.sectionTitle}>Notes (Optional)</Text>
+            <View style={styles.notesSectionHeader}>
+              <Text style={styles.sectionTitle}>Notes (Optional)</Text>
+              {notes.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={resetForm}
+                >
+                  <Ionicons
+                    name="close-circle"
+                    size={20}
+                    color="rgba(255,255,255,0.7)"
+                  />
+                  <Text style={styles.clearButtonText}>Clear</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <TextInput
               ref={notesInputRef}
               style={styles.notesInput}
@@ -321,21 +480,21 @@ const SymptomsScreen: React.FC = () => {
               value={notes}
               onChangeText={setNotes}
               maxLength={500}
+              onBlur={() => {
+                // Ensure state is in sync when user stops editing
+                if (notesInputRef.current && notes === "") {
+                  notesInputRef.current.clear();
+                }
+              }}
+              onFocus={() => {
+                // Clear any existing text when user starts typing if state is empty
+                if (notes === "" && notesInputRef.current) {
+                  notesInputRef.current.clear();
+                }
+              }}
             />
             <Text style={styles.characterCount}>{notes.length}/500</Text>
           </View>
-
-          {/* Suggestions */}
-          {getSymptomSuggestions().length > 0 && (
-            <View style={styles.suggestionsSection}>
-              <Text style={styles.sectionTitle}>💡 Suggestions</Text>
-              {getSymptomSuggestions().map((suggestion, index) => (
-                <View key={index} style={styles.suggestionCard}>
-                  <Text style={styles.suggestionText}>{suggestion}</Text>
-                </View>
-              ))}
-            </View>
-          )}
         </ScrollView>
 
         {/* Intensity Selection Modal */}
@@ -527,6 +686,25 @@ const styles = StyleSheet.create({
   notesSection: {
     paddingHorizontal: 20,
     marginBottom: 20,
+  },
+  notesSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  clearButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  clearButtonText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    marginLeft: 4,
   },
   notesInput: {
     backgroundColor: "rgba(255,255,255,0.2)",
