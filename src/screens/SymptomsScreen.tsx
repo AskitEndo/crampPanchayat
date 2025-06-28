@@ -1,7 +1,13 @@
 // CrampPanchayat Symptoms Screen - Comprehensive symptom tracking
 // Allows users to log symptoms with intensity and get suggestions
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -14,6 +20,8 @@ import {
   Modal,
   TextInput,
   Keyboard,
+  Animated,
+  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,8 +29,14 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList, SymptomType, SymptomIntensity } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
-import { SYMPTOMS, INTENSITY_LEVELS } from "../constants";
+import {
+  SYMPTOMS,
+  INTENSITY_LEVELS,
+  QUICK_SYMPTOM_TIPS,
+  UI_CONFIG,
+} from "../constants";
 import { format } from "date-fns";
+import { Calendar } from "react-native-calendars";
 
 type SymptomsNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -30,113 +44,146 @@ const SymptomsScreen: React.FC = () => {
   const navigation = useNavigation<SymptomsNavigationProp>();
   const { activeProfile, refreshProfiles } = useProfiles();
   const notesInputRef = useRef<TextInput>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSymptoms, setSelectedSymptoms] = useState<SymptomIntensity[]>(
     []
   );
   const [showIntensityModal, setShowIntensityModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [currentSymptom, setCurrentSymptom] = useState<SymptomType | null>(
     null
   );
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Load existing symptoms for the selected date
+  // Optimized date string computation
+  const dateStr = useMemo(
+    () => selectedDate.toISOString().split("T")[0],
+    [selectedDate]
+  );
+
+  // Optimized symptom suggestions - memoized for performance
+  const symptomSuggestions = useMemo(() => {
+    if (selectedSymptoms.length === 0) return [];
+
+    const allSuggestions: string[] = [];
+
+    // Get suggestions for each selected symptom
+    selectedSymptoms.forEach((symptom) => {
+      const tips = QUICK_SYMPTOM_TIPS[symptom.type];
+      if (tips) {
+        // Add intensity-based filtering for high intensity symptoms
+        if (symptom.intensity >= 3) {
+          allSuggestions.push(...tips);
+        } else {
+          // For mild symptoms, show only the first 2 tips
+          allSuggestions.push(...tips.slice(0, 2));
+        }
+      }
+    });
+
+    // Remove duplicates and limit to 4 suggestions for better UX
+    return [...new Set(allSuggestions)].slice(0, 4);
+  }, [selectedSymptoms]);
+
+  // Load existing data efficiently
   useEffect(() => {
-    if (activeProfile) {
-      const dateStr = selectedDate.toISOString().split("T")[0];
-      // Check for existing symptoms on this date across cycles
-      const existingSymptoms: SymptomIntensity[] = [];
+    if (!activeProfile) return;
 
-      activeProfile.cycles.forEach((cycle) => {
-        if (cycle.symptoms[dateStr]) {
-          existingSymptoms.push(...cycle.symptoms[dateStr]);
-        }
-      });
+    const existingSymptoms: SymptomIntensity[] = [];
+    let foundNotes = "";
 
-      setSelectedSymptoms(existingSymptoms);
+    // Single loop through cycles for better performance
+    activeProfile.cycles.forEach((cycle) => {
+      if (cycle.symptoms[dateStr]) {
+        existingSymptoms.push(...cycle.symptoms[dateStr]);
+      }
+      if (cycle.notes[dateStr] && !foundNotes) {
+        foundNotes = cycle.notes[dateStr];
+      }
+    });
 
-      // Load notes for this date
-      activeProfile.cycles.forEach((cycle) => {
-        if (cycle.notes[dateStr]) {
-          setNotes(cycle.notes[dateStr]);
-        }
-      });
+    setSelectedSymptoms(existingSymptoms);
+    setNotes(foundNotes);
+
+    // Update input ref if needed
+    if (notesInputRef.current && foundNotes !== notes) {
+      notesInputRef.current.setNativeProps({ text: foundNotes });
     }
-  }, [activeProfile, selectedDate]);
+  }, [activeProfile, dateStr]);
 
-  // Force refresh when screen is focused
+  // Simplified focus effect
   useFocusEffect(
     useCallback(() => {
       refreshProfiles();
-    }, [refreshProfiles])
+      // Animate in
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start();
+
+      return () => {
+        // Cleanup on unmount
+        fadeAnim.setValue(0);
+      };
+    }, [refreshProfiles, fadeAnim])
   );
 
-  // Clear form when navigating away from screen
-  useEffect(() => {
-    return () => {
-      // Cleanup function runs when component unmounts (user navigates away)
-      resetForm();
-    };
-  }, []);
-
-  // Also clear form when date changes
-  useEffect(() => {
-    resetForm();
-  }, [selectedDate]);
-
-  const handleSymptomSelect = (symptomType: SymptomType) => {
-    setCurrentSymptom(symptomType);
-    setShowIntensityModal(true);
-  };
-
-  const handleIntensitySelect = (intensity: 1 | 2 | 3 | 4 | 5) => {
-    if (!currentSymptom) return;
-
-    const newSymptom: SymptomIntensity = {
-      type: currentSymptom,
-      intensity,
-    };
-
-    // Remove existing entry for this symptom if any
-    const filteredSymptoms = selectedSymptoms.filter(
-      (s) => s.type !== currentSymptom
-    );
-    setSelectedSymptoms([...filteredSymptoms, newSymptom]);
-
-    setShowIntensityModal(false);
-    setCurrentSymptom(null);
-  };
-
-  const removeSymptom = (symptomType: SymptomType) => {
-    setSelectedSymptoms(selectedSymptoms.filter((s) => s.type !== symptomType));
-  };
-
-  // Helper function to completely reset the form
-  const resetForm = () => {
+  // Optimized form reset
+  const resetForm = useCallback(() => {
     setSelectedSymptoms([]);
     setNotes("");
     if (notesInputRef.current) {
       notesInputRef.current.clear();
       notesInputRef.current.blur();
-      // Force native component to clear
-      setTimeout(() => {
-        if (notesInputRef.current) {
-          notesInputRef.current.setNativeProps({ text: "" });
-        }
-      }, 50);
     }
     Keyboard.dismiss();
-  };
+  }, []);
 
-  const saveSymptoms = async () => {
+  const handleSymptomSelect = useCallback((symptomType: SymptomType) => {
+    setCurrentSymptom(symptomType);
+    setShowIntensityModal(true);
+  }, []);
+
+  const handleIntensitySelect = useCallback(
+    (intensity: 1 | 2 | 3 | 4 | 5) => {
+      if (!currentSymptom) return;
+
+      const newSymptom: SymptomIntensity = {
+        type: currentSymptom,
+        intensity,
+      };
+
+      setSelectedSymptoms((prev) => [
+        ...prev.filter((s) => s.type !== currentSymptom),
+        newSymptom,
+      ]);
+
+      setShowIntensityModal(false);
+      setCurrentSymptom(null);
+    },
+    [currentSymptom]
+  );
+
+  const removeSymptom = useCallback((symptomType: SymptomType) => {
+    setSelectedSymptoms((prev) => prev.filter((s) => s.type !== symptomType));
+  }, []);
+
+  const handleDateSelect = useCallback((day: any) => {
+    setSelectedDate(new Date(day.dateString));
+    setShowDatePicker(false);
+  }, []);
+
+  const saveSymptoms = useCallback(async () => {
     if (!activeProfile) {
       Alert.alert("Error", "No active profile found");
       return;
     }
 
-    // Validation: Must have at least symptoms selected
     if (selectedSymptoms.length === 0) {
       Alert.alert(
         "Select Symptoms",
@@ -152,13 +199,10 @@ const SymptomsScreen: React.FC = () => {
       const { StorageService } = await import("../services/storage");
       const storage = StorageService.getInstance();
 
-      const dateStr = selectedDate.toISOString().split("T")[0];
-
-      // Add symptom record with attached notes
       await storage.addSymptomRecord(activeProfile.id, {
         date: selectedDate.toISOString(),
         symptoms: selectedSymptoms,
-        notes: notes.trim() || undefined, // Attach notes directly to symptom record
+        notes: notes.trim() || undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -178,20 +222,11 @@ const SymptomsScreen: React.FC = () => {
         });
       }
 
-      // Clear the form immediately after successful save
       resetForm();
-
-      // Force refresh to get latest data
       await refreshProfiles();
 
       Alert.alert("Success", "Symptoms logged successfully!", [
-        {
-          text: "OK",
-          onPress: () => {
-            // Final safety check to ensure form is cleared
-            resetForm();
-          },
-        },
+        { text: "OK", onPress: resetForm },
       ]);
     } catch (error) {
       console.error("Error saving symptoms:", error);
@@ -199,140 +234,59 @@ const SymptomsScreen: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [
+    activeProfile,
+    selectedSymptoms,
+    notes,
+    selectedDate,
+    dateStr,
+    resetForm,
+    refreshProfiles,
+  ]);
 
-  const getSymptomSuggestions = () => {
-    if (selectedSymptoms.length === 0) return [];
+  // Memoized symptom cards for performance
+  const symptomCards = useMemo(() => {
+    return Object.entries(SYMPTOMS)
+      .sort(([, a], [, b]) => a.priority - b.priority)
+      .map(([key, symptom]) => {
+        const isSelected = selectedSymptoms.some((s) => s.type === key);
+        const selectedSymptom = selectedSymptoms.find((s) => s.type === key);
 
-    const suggestions: string[] = [];
-
-    // Advanced suggestions based on symptoms and intensity
-    const hasHeadache = selectedSymptoms.some(
-      (s) => s.type === "headache" && s.intensity >= 3
-    );
-    const hasCramps = selectedSymptoms.some(
-      (s) => s.type === "cramps" && s.intensity >= 3
-    );
-    const hasFatigue = selectedSymptoms.some(
-      (s) => s.type === "fatigue" && s.intensity >= 2
-    );
-    const hasNausea = selectedSymptoms.some((s) => s.type === "nausea");
-    const hasBloating = selectedSymptoms.some((s) => s.type === "bloating");
-    const hasMoodSwings = selectedSymptoms.some(
-      (s) => s.type === "mood_swings"
-    );
-    const hasAcne = selectedSymptoms.some((s) => s.type === "acne");
-    const hasBreastTenderness = selectedSymptoms.some(
-      (s) => s.type === "breast_tenderness"
-    );
-    const hasInsomnia = selectedSymptoms.some((s) => s.type === "insomnia");
-    const hasFoodCravings = selectedSymptoms.some(
-      (s) => s.type === "food_cravings"
-    );
-
-    // Headache remedies
-    if (hasHeadache) {
-      suggestions.push(
-        "💧 Stay hydrated - drink 8-10 glasses water",
-        "🧘‍♀️ Try relaxation techniques or meditation",
-        "😴 Rest in a dark, quiet room",
-        "❄️ Apply cold compress to forehead"
-      );
-    }
-
-    // Cramp relief
-    if (hasCramps) {
-      suggestions.push(
-        "🔥 Apply heat therapy (heating pad/hot water bottle)",
-        "🚶‍♀️ Light exercise like walking or yoga",
-        "🛁 Take a warm bath with Epsom salts",
-        "💊 Consider anti-inflammatory medication"
-      );
-    }
-
-    // Fatigue management
-    if (hasFatigue) {
-      suggestions.push(
-        "😴 Prioritize 7-9 hours of quality sleep",
-        "🥗 Eat iron-rich foods (spinach, lentils)",
-        "☕ Limit caffeine and avoid energy crashes",
-        "🌱 Take short walks for natural energy"
-      );
-    }
-
-    // Nausea relief
-    if (hasNausea) {
-      suggestions.push(
-        "🫖 Try ginger tea or ginger chews",
-        "🍋 Small, frequent meals throughout day",
-        "🍪 Keep plain crackers nearby",
-        "💨 Fresh air and deep breathing exercises"
-      );
-    }
-
-    // Bloating relief
-    if (hasBloating) {
-      suggestions.push(
-        "🥤 Drink peppermint or chamomile tea",
-        "🚫 Avoid carbonated drinks and salty foods",
-        "🤸‍♀️ Gentle abdominal massage",
-        "🥬 Eat potassium-rich foods (bananas, avocados)"
-      );
-    }
-
-    // Mood support
-    if (hasMoodSwings) {
-      suggestions.push(
-        "🧘‍♀️ Practice mindfulness or deep breathing",
-        "📱 Connect with supportive friends/family",
-        "🎵 Listen to calming music",
-        "📝 Journal your thoughts and feelings"
-      );
-    }
-
-    // Skin care
-    if (hasAcne) {
-      suggestions.push(
-        "🧴 Use gentle, non-comedogenic skincare",
-        "🚫 Avoid touching your face frequently",
-        "💧 Stay hydrated for healthy skin",
-        "🥦 Eat antioxidant-rich foods"
-      );
-    }
-
-    // Breast tenderness
-    if (hasBreastTenderness) {
-      suggestions.push(
-        "👙 Wear a supportive, well-fitting bra",
-        "❄️ Apply cold compress for 10-15 minutes",
-        "🚫 Limit caffeine and salt intake",
-        "🤗 Use loose-fitting clothing"
-      );
-    }
-
-    // Sleep improvement
-    if (hasInsomnia) {
-      suggestions.push(
-        "📱 Limit screen time 1 hour before bed",
-        "🫖 Try chamomile tea or warm milk",
-        "🌡️ Keep bedroom cool and dark",
-        "📖 Read a book or practice relaxation"
-      );
-    }
-
-    // Food cravings
-    if (hasFoodCravings) {
-      suggestions.push(
-        "🍓 Choose dark chocolate (70%+ cacao)",
-        "🥜 Keep healthy snacks like nuts nearby",
-        "💧 Sometimes thirst feels like hunger",
-        "🍽️ Eat balanced meals to prevent cravings"
-      );
-    }
-
-    // Return unique suggestions (max 4-5 to avoid overwhelming)
-    return [...new Set(suggestions)].slice(0, 5);
-  };
+        return (
+          <TouchableOpacity
+            key={key}
+            style={[
+              styles.symptomCard,
+              isSelected && styles.selectedSymptomCard,
+            ]}
+            onPress={() => handleSymptomSelect(key as SymptomType)}
+            accessibilityLabel={`${symptom.name} symptom`}
+            accessibilityHint={
+              isSelected
+                ? "Tap to change intensity or remove"
+                : "Tap to add symptom"
+            }
+          >
+            <Text style={styles.symptomEmoji}>{symptom.emoji}</Text>
+            <Text style={styles.symptomName}>{symptom.name}</Text>
+            {isSelected && selectedSymptom && (
+              <View style={styles.intensityIndicator}>
+                <Text style={styles.intensityText}>
+                  {INTENSITY_LEVELS[selectedSymptom.intensity].emoji}
+                </Text>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => removeSymptom(key as SymptomType)}
+                  accessibilityLabel={`Remove ${symptom.name}`}
+                >
+                  <Ionicons name="close" size={16} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      });
+  }, [selectedSymptoms, handleSymptomSelect, removeSymptom]);
 
   if (!activeProfile) {
     return (
@@ -361,143 +315,186 @@ const SymptomsScreen: React.FC = () => {
         translucent={false}
       />
       <LinearGradient colors={["#E91E63", "#AD1457"]} style={styles.gradient}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+        <Animated.View
+          style={[styles.animatedContainer, { opacity: fadeAnim }]}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Track Symptoms</Text>
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={saveSymptoms}
-              disabled={isSaving}
-            >
-              <Text style={styles.saveButtonText}>
-                {isSaving ? "Saving..." : "Save"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header with Quick Actions */}
+            <View style={styles.header}>
+              <View>
+                <Text style={styles.headerTitle}>Track Symptoms</Text>
+                <Text style={styles.headerSubtitle}>
+                  {selectedSymptoms.length > 0
+                    ? `${selectedSymptoms.length} symptom${
+                        selectedSymptoms.length > 1 ? "s" : ""
+                      } selected`
+                    : "Select symptoms to track"}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  isSaving && styles.saveButtonDisabled,
+                ]}
+                onPress={saveSymptoms}
+                disabled={isSaving || selectedSymptoms.length === 0}
+                accessibilityLabel="Save symptoms"
+              >
+                <Text style={styles.saveButtonText}>
+                  {isSaving ? "Saving..." : "Save"}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* Date Selection */}
-          <View style={styles.dateSection}>
-            <Text style={styles.sectionTitle}>Date</Text>
-            <TouchableOpacity style={styles.dateButton}>
-              <Text style={styles.dateText}>
-                {format(selectedDate, "MMMM dd, yyyy")}
-              </Text>
-              <Text style={styles.dateSubtext}>
-                {selectedDate.toDateString() === new Date().toDateString()
-                  ? "Today"
-                  : ""}
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {/* Enhanced Date Selection */}
+            <View style={styles.dateSection}>
+              <Text style={styles.sectionTitle}>📅 Date</Text>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => setShowDatePicker(true)}
+                accessibilityLabel="Select date"
+              >
+                <View style={styles.dateButtonContent}>
+                  <Text style={styles.dateText}>
+                    {format(selectedDate, "MMMM dd, yyyy")}
+                  </Text>
+                  <Text style={styles.dateSubtext}>
+                    {selectedDate.toDateString() === new Date().toDateString()
+                      ? "Today"
+                      : format(selectedDate, "EEEE")}
+                  </Text>
+                </View>
+                <Ionicons
+                  name="calendar-outline"
+                  size={24}
+                  color="rgba(255,255,255,0.8)"
+                />
+              </TouchableOpacity>
+            </View>
 
-          {/* Suggestions Section */}
-          {selectedSymptoms.length > 0 &&
-            getSymptomSuggestions().length > 0 && (
+            {/* Suggestions Section - Now more prominent */}
+            {symptomSuggestions.length > 0 && (
               <View style={styles.suggestionsSection}>
                 <Text style={styles.sectionTitle}>💡 Helpful Tips</Text>
-                <View>
-                  {getSymptomSuggestions().map((suggestion, index) => (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.suggestionsContainer}
+                >
+                  {symptomSuggestions.map((suggestion, index) => (
                     <View key={index} style={styles.suggestionCard}>
                       <Text style={styles.suggestionText}>{suggestion}</Text>
                     </View>
                   ))}
-                </View>
+                </ScrollView>
               </View>
             )}
 
-          {/* Symptoms Grid */}
-          <View style={styles.symptomsSection}>
-            <Text style={styles.sectionTitle}>How are you feeling?</Text>
-            <View style={styles.symptomsGrid}>
-              {Object.entries(SYMPTOMS)
-                .sort(([, a], [, b]) => a.priority - b.priority) // Sort by priority (common symptoms first)
-                .map(([key, symptom]) => {
-                  const isSelected = selectedSymptoms.some(
-                    (s) => s.type === key
-                  );
-                  const selectedSymptom = selectedSymptoms.find(
-                    (s) => s.type === key
-                  );
-
-                  return (
-                    <TouchableOpacity
-                      key={key}
-                      style={[
-                        styles.symptomCard,
-                        isSelected && styles.selectedSymptomCard,
-                      ]}
-                      onPress={() => handleSymptomSelect(key as SymptomType)}
-                    >
-                      <Text style={styles.symptomEmoji}>{symptom.emoji}</Text>
-                      <Text style={styles.symptomName}>{symptom.name}</Text>
-                      {isSelected && selectedSymptom && (
-                        <View style={styles.intensityIndicator}>
-                          <Text style={styles.intensityText}>
-                            {INTENSITY_LEVELS[selectedSymptom.intensity].emoji}
-                          </Text>
-                          <TouchableOpacity
-                            style={styles.removeButton}
-                            onPress={() => removeSymptom(key as SymptomType)}
-                          >
-                            <Ionicons name="close" size={16} color="#fff" />
-                          </TouchableOpacity>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+            {/* Symptoms Grid - Redesigned */}
+            <View style={styles.symptomsSection}>
+              <Text style={styles.sectionTitle}>🎭 How are you feeling?</Text>
+              <View style={styles.symptomsGrid}>{symptomCards}</View>
             </View>
-          </View>
 
-          {/* Notes Section */}
-          <View style={styles.notesSection}>
-            <View style={styles.notesSectionHeader}>
-              <Text style={styles.sectionTitle}>Notes (Optional)</Text>
-              {notes.length > 0 && (
-                <TouchableOpacity
-                  style={styles.clearButton}
-                  onPress={resetForm}
-                >
-                  <Ionicons
-                    name="close-circle"
-                    size={20}
-                    color="rgba(255,255,255,0.7)"
-                  />
-                  <Text style={styles.clearButtonText}>Clear</Text>
+            {/* Enhanced Notes Section */}
+            <View style={styles.notesSection}>
+              <View style={styles.notesSectionHeader}>
+                <Text style={styles.sectionTitle}>📝 Notes (Optional)</Text>
+                {notes.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.clearButton}
+                    onPress={() => {
+                      setNotes("");
+                      if (notesInputRef.current) {
+                        notesInputRef.current.clear();
+                      }
+                    }}
+                    accessibilityLabel="Clear notes"
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={20}
+                      color="rgba(255,255,255,0.7)"
+                    />
+                    <Text style={styles.clearButtonText}>Clear</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <TextInput
+                ref={notesInputRef}
+                style={styles.notesInput}
+                multiline
+                placeholder="Any additional notes about how you're feeling..."
+                placeholderTextColor="rgba(255,255,255,0.7)"
+                value={notes}
+                onChangeText={setNotes}
+                maxLength={500}
+                textAlignVertical="top"
+                accessibilityLabel="Notes input"
+              />
+              <Text style={styles.characterCount}>{notes.length}/500</Text>
+            </View>
+
+            {/* Quick Action Buttons */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity
+                style={styles.quickActionButton}
+                onPress={resetForm}
+                accessibilityLabel="Clear all"
+              >
+                <Ionicons name="refresh-outline" size={20} color="#fff" />
+                <Text style={styles.quickActionText}>Clear All</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionButton}
+                onPress={() => navigation.navigate("Calendar")}
+                accessibilityLabel="View calendar"
+              >
+                <Ionicons name="calendar" size={20} color="#fff" />
+                <Text style={styles.quickActionText}>View Calendar</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </Animated.View>
+
+        {/* Date Picker Modal */}
+        <Modal
+          visible={showDatePicker}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowDatePicker(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.datePickerModal}>
+              <View style={styles.datePickerHeader}>
+                <Text style={styles.datePickerTitle}>Select Date</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                  <Ionicons name="close" size={24} color="#333" />
                 </TouchableOpacity>
-              )}
+              </View>
+              <Calendar
+                onDayPress={handleDateSelect}
+                maxDate={new Date().toISOString().split("T")[0]}
+                markedDates={{
+                  [dateStr]: { selected: true, selectedColor: "#E91E63" },
+                }}
+                theme={{
+                  selectedDayBackgroundColor: "#E91E63",
+                  selectedDayTextColor: "#ffffff",
+                  todayTextColor: "#E91E63",
+                  arrowColor: "#E91E63",
+                }}
+              />
             </View>
-            <TextInput
-              ref={notesInputRef}
-              style={styles.notesInput}
-              multiline
-              placeholder="Any additional notes about how you're feeling..."
-              placeholderTextColor="rgba(255,255,255,0.7)"
-              value={notes}
-              onChangeText={setNotes}
-              maxLength={500}
-              onBlur={() => {
-                // Ensure state is in sync when user stops editing
-                if (notesInputRef.current && notes === "") {
-                  notesInputRef.current.clear();
-                }
-              }}
-              onFocus={() => {
-                // Clear any existing text when user starts typing if state is empty
-                if (notes === "" && notesInputRef.current) {
-                  notesInputRef.current.clear();
-                }
-              }}
-            />
-            <Text style={styles.characterCount}>{notes.length}/500</Text>
           </View>
-        </ScrollView>
+        </Modal>
 
-        {/* Intensity Selection Modal */}
+        {/* Intensity Selection Modal - Enhanced */}
         <Modal
           visible={showIntensityModal}
           transparent
@@ -524,9 +521,12 @@ const SymptomsScreen: React.FC = () => {
                         parseInt(level) as 1 | 2 | 3 | 4 | 5
                       )
                     }
+                    accessibilityLabel={`${data.label} intensity`}
                   >
                     <Text style={styles.intensityEmoji}>{data.emoji}</Text>
-                    <Text style={styles.intensityLabel}>{data.label}</Text>
+                    <View style={styles.intensityTextContainer}>
+                      <Text style={styles.intensityLabel}>{data.label}</Text>
+                    </View>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -534,6 +534,7 @@ const SymptomsScreen: React.FC = () => {
               <TouchableOpacity
                 style={styles.cancelButton}
                 onPress={() => setShowIntensityModal(false)}
+                accessibilityLabel="Cancel intensity selection"
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
@@ -550,6 +551,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gradient: {
+    flex: 1,
+  },
+  animatedContainer: {
     flex: 1,
   },
   centerContainer: {
@@ -584,7 +588,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
@@ -594,11 +598,22 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
+  headerSubtitle: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
+    marginTop: 4,
+  },
   saveButton: {
     backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  saveButtonDisabled: {
+    backgroundColor: "rgba(255,255,255,0.1)",
+    opacity: 0.6,
   },
   saveButtonText: {
     color: "white",
@@ -618,8 +633,13 @@ const styles = StyleSheet.create({
   dateButton: {
     backgroundColor: "rgba(255,255,255,0.2)",
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+  },
+  dateButtonContent: {
+    flex: 1,
   },
   dateText: {
     color: "white",
@@ -644,10 +664,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.2)",
     width: "48%",
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: "center",
     marginBottom: 10,
     position: "relative",
+    minHeight: 80,
+    justifyContent: "center",
   },
   selectedSymptomCard: {
     backgroundColor: "rgba(255,255,255,0.3)",
@@ -666,8 +688,8 @@ const styles = StyleSheet.create({
   },
   intensityIndicator: {
     position: "absolute",
-    top: 5,
-    right: 5,
+    top: 8,
+    right: 8,
     flexDirection: "row",
     alignItems: "center",
   },
@@ -676,10 +698,10 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   removeButton: {
-    backgroundColor: "rgba(255,0,0,0.7)",
-    borderRadius: 8,
-    width: 16,
-    height: 16,
+    backgroundColor: "rgba(255,0,0,0.8)",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -708,7 +730,7 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 15,
     color: "white",
     fontSize: 16,
@@ -722,18 +744,43 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   suggestionsSection: {
-    paddingHorizontal: 20,
+    paddingLeft: 20,
     marginBottom: 20,
   },
+  suggestionsContainer: {
+    paddingRight: 20,
+  },
   suggestionCard: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 8,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    padding: 12,
+    borderRadius: 20,
+    marginRight: 10,
+    minWidth: 200,
   },
   suggestionText: {
     color: "white",
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  quickActions: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingHorizontal: 20,
+    marginTop: 10,
+  },
+  quickActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  quickActionText: {
+    color: "white",
+    fontSize: 14,
+    marginLeft: 6,
+    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,
@@ -763,28 +810,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 15,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-    marginBottom: 8,
-    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    backgroundColor: "#f8f9fa",
   },
   intensityEmoji: {
     fontSize: 24,
     marginRight: 15,
   },
+  intensityTextContainer: {
+    flex: 1,
+  },
   intensityLabel: {
     fontSize: 16,
-    fontWeight: "500",
+    fontWeight: "600",
     color: "#333",
   },
+  intensityDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
+  },
   cancelButton: {
-    backgroundColor: "#ddd",
+    backgroundColor: "#e9ecef",
     paddingVertical: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: "center",
   },
   cancelButtonText: {
     fontSize: 16,
+    fontWeight: "600",
+    color: "#495057",
+  },
+  datePickerModal: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    width: "90%",
+    maxWidth: 400,
+  },
+  datePickerHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  datePickerTitle: {
+    fontSize: 18,
     fontWeight: "600",
     color: "#333",
   },

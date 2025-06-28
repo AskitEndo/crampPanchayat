@@ -1,7 +1,13 @@
-// CrampPanchayat Home Screen - Enhanced with proper navigation and status bar handling
-// Clean, mobile-first home screen with complete functionality
+// CrampPanchayat Home Screen - Optimized and Enhanced
+// Clean, mobile-first home screen with better performance and UI
 
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -15,6 +21,8 @@ import {
   StatusBar,
   Platform,
   Image,
+  Animated,
+  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -22,13 +30,61 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
-import { format, differenceInDays, addDays } from "date-fns";
+import { format, differenceInDays, addDays, isToday } from "date-fns";
 import { MOTIVATIONAL_QUOTES } from "../constants";
 import { donationPromptManager } from "../utils/donationPrompt";
 
 type HomeNavigationProp = StackNavigationProp<RootStackParamList>;
 
 const { width: screenWidth } = Dimensions.get("window");
+
+// Memoized quick action component for better performance
+const QuickActionButton = React.memo(
+  ({
+    action,
+    onPress,
+  }: {
+    action: {
+      icon: string;
+      title: string;
+      subtitle: string;
+      color: string;
+    };
+    onPress: () => void;
+  }) => (
+    <TouchableOpacity style={styles.actionButton} onPress={onPress}>
+      <Ionicons name={action.icon as any} size={32} color={action.color} />
+      <Text style={styles.actionText}>{action.title}</Text>
+      <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+    </TouchableOpacity>
+  )
+);
+
+// Memoized profile button component
+const ProfileButton = React.memo(
+  ({
+    profile,
+    isActive,
+    onPress,
+  }: {
+    profile: any;
+    isActive: boolean;
+    onPress: () => void;
+  }) => (
+    <TouchableOpacity
+      style={[styles.profileButton, isActive && styles.activeProfileButton]}
+      onPress={onPress}
+    >
+      <Text style={styles.profileEmoji}>{profile.emoji}</Text>
+      {profile.name && <Text style={styles.profileName}>{profile.name}</Text>}
+      {isActive && (
+        <View style={styles.activeIndicator}>
+          <Ionicons name="checkmark" size={12} color="#4CAF50" />
+        </View>
+      )}
+    </TouchableOpacity>
+  )
+);
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeNavigationProp>();
@@ -43,77 +99,207 @@ const HomeScreen: React.FC = () => {
   } = useProfiles();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [currentCycle, setCurrentCycle] = useState<any>(null);
   const [dailyQuote, setDailyQuote] = useState<string>("");
+  const [switchingProfile, setSwitchingProfile] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // Set daily motivational quote - refreshes each time screen is focused
-  const refreshQuote = () => {
-    const now = new Date();
-    const seed = now.getTime() + Math.random() * 1000; // More dynamic seed
-    const quoteIndex = Math.floor(seed) % MOTIVATIONAL_QUOTES.length;
+  // Memoized cycle calculations for better performance
+  const cycleInfo = useMemo(() => {
+    if (!activeProfile || activeProfile.cycles.length === 0) {
+      return null;
+    }
+
+    const lastCycle = activeProfile.cycles[activeProfile.cycles.length - 1];
+    const cycleStartDate = new Date(lastCycle.startDate);
+    const today = new Date();
+    const daysSinceStart = differenceInDays(today, cycleStartDate);
+    const averagePeriodLength =
+      activeProfile.settings?.averagePeriodLength || 5;
+    const averageCycleLength = activeProfile.settings?.averageCycleLength || 28;
+
+    return {
+      startDate: cycleStartDate,
+      daysSinceStart,
+      isInPeriod: daysSinceStart >= 0 && daysSinceStart < averagePeriodLength,
+      predictedNextPeriod: addDays(cycleStartDate, averageCycleLength),
+      cycleDay: daysSinceStart + 1,
+      averageCycleLength,
+      averagePeriodLength,
+      daysUntilNext: Math.max(0, averageCycleLength - daysSinceStart),
+      progressPercentage: Math.min(
+        100,
+        Math.max(0, (daysSinceStart / averageCycleLength) * 100)
+      ),
+    };
+  }, [activeProfile]);
+
+  // Memoized quick stats with enhanced calculations
+  const quickStats = useMemo(() => {
+    if (!activeProfile) return null;
+
+    const recentSymptoms = activeProfile.symptoms.filter((s) => {
+      const symptomDate = new Date(s.date);
+      const daysDiff = differenceInDays(new Date(), symptomDate);
+      return daysDiff <= 7; // Last 7 days
+    });
+
+    return {
+      totalCycles: activeProfile.cycles.length,
+      totalSymptoms: activeProfile.symptoms.length,
+      totalNotes: activeProfile.notes.length,
+      recentSymptoms: recentSymptoms.length,
+      averageCycleLength:
+        activeProfile.cycles.length > 1
+          ? Math.round(
+              activeProfile.cycles.reduce((acc, cycle, index) => {
+                if (index === 0) return acc;
+                const prevCycle = activeProfile.cycles[index - 1];
+                const daysBetween = differenceInDays(
+                  new Date(cycle.startDate),
+                  new Date(prevCycle.startDate)
+                );
+                return acc + daysBetween;
+              }, 0) /
+                (activeProfile.cycles.length - 1)
+            )
+          : activeProfile.settings?.averageCycleLength || 28,
+    };
+  }, [activeProfile]);
+
+  // Optimized quote refresh with daily consistency
+  const refreshQuote = useCallback(() => {
+    const today = new Date();
+    const dayOfYear = Math.floor(
+      (today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) /
+        86400000
+    );
+    const quoteIndex = dayOfYear % MOTIVATIONAL_QUOTES.length;
     setDailyQuote(MOTIVATIONAL_QUOTES[quoteIndex]);
-  };
+  }, []);
+
+  // Entrance animation
+  const startAnimation = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        easing: Easing.out(Easing.back(1.1)),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
 
   useEffect(() => {
     refreshQuote();
-  }, []);
+  }, [refreshQuote]);
 
-  // Refresh quote when screen is focused
+  // Focus effect with animation
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       refreshQuote();
-    }, [])
+      startAnimation();
+
+      if (Platform.OS === "android") {
+        StatusBar.setBarStyle("light-content", true);
+        StatusBar.setBackgroundColor("#E91E63", true);
+      } else {
+        StatusBar.setBarStyle("light-content", true);
+      }
+
+      return () => {
+        fadeAnim.setValue(0);
+        slideAnim.setValue(50);
+      };
+    }, [refreshQuote, startAnimation, fadeAnim, slideAnim])
   );
 
-  // Set status bar content
-  useEffect(() => {
-    if (Platform.OS === "android") {
-      StatusBar.setBarStyle("light-content", true);
-      StatusBar.setBackgroundColor("#E91E63", true);
-    } else {
-      StatusBar.setBarStyle("light-content", true);
-    }
-  }, []);
+  // Enhanced refresh handler with better error handling
+  const handleRefresh = useCallback(async () => {
+    if (refreshing) return; // Prevent multiple simultaneous refreshes
 
-  // Refresh handler
-  const handleRefresh = async () => {
     setRefreshing(true);
-    await refreshProfiles();
-    setRefreshing(false);
-  };
-
-  // Calculate current cycle info
-  useEffect(() => {
-    if (activeProfile && activeProfile.cycles.length > 0) {
-      const lastCycle = activeProfile.cycles[activeProfile.cycles.length - 1];
-      const cycleStartDate = new Date(lastCycle.startDate);
-      const today = new Date();
-      const daysSinceStart = differenceInDays(today, cycleStartDate);
-
-      setCurrentCycle({
-        startDate: cycleStartDate,
-        daysSinceStart,
-        isInPeriod: daysSinceStart < activeProfile.settings.averagePeriodLength,
-        predictedNextPeriod: addDays(
-          cycleStartDate,
-          activeProfile.settings.averageCycleLength
-        ),
-      });
-    } else {
-      setCurrentCycle(null);
-    }
-  }, [activeProfile]);
-
-  // Handle profile switching
-  const handleProfileSwitch = async (profileId: string) => {
     try {
-      console.log("Switching to profile:", profileId);
-      await selectProfile(profileId);
+      await refreshProfiles();
+      refreshQuote();
     } catch (err) {
-      console.error("Profile switch error:", err);
-      Alert.alert("Error", "Failed to switch profile");
+      console.error("Refresh error:", err);
+      Alert.alert(
+        "Refresh Failed",
+        "Could not refresh data. Please check your connection and try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setRefreshing(false);
     }
-  };
+  }, [refreshing, refreshProfiles, refreshQuote]);
+
+  // Quick action handlers
+  const quickActions = useMemo(
+    () => [
+      {
+        icon: "add-circle",
+        title: "Log Period",
+        subtitle: "Mark period start",
+        color: "#FF6B6B",
+        onPress: () => navigation.navigate("Calendar"),
+      },
+      {
+        icon: "heart",
+        title: "Track Symptoms",
+        subtitle: "How are you feeling?",
+        color: "#4ECDC4",
+        onPress: () => navigation.navigate("Symptoms"),
+      },
+      {
+        icon: "calendar",
+        title: "View Calendar",
+        subtitle: "See your cycle",
+        color: "#45B7D1",
+        onPress: () => navigation.navigate("Calendar"),
+      },
+      {
+        icon: "settings",
+        title: "Settings",
+        subtitle: "Manage profile",
+        color: "#96CEB4",
+        onPress: () => navigation.navigate("Settings"),
+      },
+    ],
+    [navigation]
+  );
+
+  // Enhanced profile switching with better error handling
+  const handleProfileSwitch = useCallback(
+    async (profileId?: string) => {
+      if (profileId) {
+        if (profileId === activeProfile?.id) return; // Already active
+
+        setSwitchingProfile(true);
+        try {
+          console.log("Switching to profile:", profileId);
+          await selectProfile(profileId);
+        } catch (err) {
+          console.error("Profile switch error:", err);
+          Alert.alert("Error", "Failed to switch profile. Please try again.", [
+            { text: "OK" },
+          ]);
+        } finally {
+          setSwitchingProfile(false);
+        }
+      } else {
+        // Navigate to profile selector
+        navigation.navigate("ProfileSelector");
+      }
+    },
+    [activeProfile?.id, selectProfile, navigation]
+  );
 
   // Handle period tracking
   const handleTrackPeriod = async () => {
@@ -212,14 +398,18 @@ const HomeScreen: React.FC = () => {
     }
   }, [error, clearError]);
 
-  // Auto-refresh when screen comes into focus
+  // Auto-refresh when screen comes into focus - but only if needed
   useFocusEffect(
     React.useCallback(() => {
-      refreshProfiles();
-    }, [refreshProfiles])
+      // Only refresh if we don't have profiles or if we're not in the middle of switching
+      if (!switchingProfile && (profiles.length === 0 || !activeProfile)) {
+        refreshProfiles();
+      }
+    }, [refreshProfiles, switchingProfile, profiles.length, activeProfile])
   );
 
-  if (loading && !refreshing) {
+  // Only show loading on initial load, not during profile switches
+  if (loading && !refreshing && !switchingProfile && profiles.length === 0) {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#E91E63" />
@@ -233,6 +423,31 @@ const HomeScreen: React.FC = () => {
     );
   }
 
+  // Handle no active profile case without full loading screen
+  if (!activeProfile && profiles.length > 0 && !loading) {
+    return (
+      <View style={styles.container}>
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="#E91E63"
+          translucent={false}
+        />
+        <LinearGradient colors={["#E91E63", "#AD1457"]} style={styles.gradient}>
+          <View style={styles.centerContainer}>
+            <Text style={styles.noProfileText}>No active profile found</Text>
+            <TouchableOpacity
+              style={styles.createProfileButton}
+              onPress={() => navigation.navigate("ProfileSelector")}
+            >
+              <Text style={styles.createProfileButtonText}>Select Profile</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </View>
+    );
+  }
+
+  // Main render with failsafe for any edge cases
   return (
     <View style={styles.container}>
       <StatusBar
@@ -241,241 +456,233 @@ const HomeScreen: React.FC = () => {
         translucent={false}
       />
       <LinearGradient colors={["#E91E63", "#AD1457"]} style={styles.gradient}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-          }
+        <Animated.View
+          style={[
+            styles.animatedContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
+          <ScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor="white"
+                colors={["white"]}
+              />
+            }
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Header with Profile Info */}
+            <View style={styles.header}>
               <View style={styles.appIconContainer}>
-                {/* <Ionicons name="heart" size={28} color="#E91E63" /> */}
                 <Image
                   source={require("../assets/images/app-icon.png")}
                   style={styles.appIcon}
                   resizeMode="contain"
                 />
+                <Text style={styles.appName}>CrampPanchayat</Text>
               </View>
-              <Text style={styles.headerTitle}>CrampPanchayat</Text>
-            </View>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => navigation.navigate("DataManagement")}
-              >
-                <Ionicons name="analytics-outline" size={24} color="white" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.headerButton}
-                onPress={() => navigation.navigate("ProfileSelector")}
-              >
-                <Ionicons name="people-outline" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          {/* Daily Motivational Quote */}
-          {dailyQuote && (
-            <View style={styles.quoteCard}>
-              <Text style={styles.quoteText}>{dailyQuote}</Text>
+              {activeProfile && (
+                <TouchableOpacity
+                  style={[
+                    styles.profileBadge,
+                    switchingProfile && styles.profileBadgeLoading,
+                  ]}
+                  onPress={() => handleProfileSwitch()}
+                  accessibilityLabel="Switch profile"
+                  disabled={switchingProfile}
+                >
+                  <Text style={styles.profileEmoji}>{activeProfile.emoji}</Text>
+                  <View style={styles.profileInfo}>
+                    <Text style={styles.profileName} numberOfLines={1}>
+                      {activeProfile.name || "Profile"}
+                    </Text>
+                    <Text style={styles.profileSubtext}>
+                      {switchingProfile
+                        ? "Switching..."
+                        : `${profiles.length} profile${
+                            profiles.length !== 1 ? "s" : ""
+                          }`}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={switchingProfile ? "sync" : "chevron-down"}
+                    size={16}
+                    color="rgba(255,255,255,0.8)"
+                  />
+                </TouchableOpacity>
+              )}
             </View>
-          )}
 
-          {/* Active Profile Display */}
-          {activeProfile && (
-            <TouchableOpacity
-              style={styles.activeProfileCard}
-              onPress={() => navigation.navigate("ProfileSelector")}
-            >
-              <View style={styles.activeProfileInfo}>
-                <Text style={styles.activeProfileEmoji}>
-                  {activeProfile.emoji}
-                </Text>
-                <View style={styles.activeProfileDetails}>
-                  <Text style={styles.activeProfileName}>
-                    {activeProfile.name || "Unnamed Profile"}
-                  </Text>
-                  <Text style={styles.activeProfileStats}>
-                    {activeProfile.cycles.length} cycles tracked
-                  </Text>
+            {/* Daily Quote */}
+            {dailyQuote && (
+              <View style={styles.quoteSection}>
+                <Text style={styles.quoteText}>"{dailyQuote}"</Text>
+              </View>
+            )}
+
+            {/* Quick Stats Section */}
+            {activeProfile && quickStats && (
+              <View style={styles.statsSection}>
+                <Text style={styles.sectionTitle}>Quick Stats</Text>
+                <View style={styles.statsGrid}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>
+                      {quickStats.totalCycles}
+                    </Text>
+                    <Text style={styles.statLabel}>Cycles</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>
+                      {quickStats.averageCycleLength}
+                    </Text>
+                    <Text style={styles.statLabel}>Avg Length</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>
+                      {quickStats.recentSymptoms}
+                    </Text>
+                    <Text style={styles.statLabel}>Recent Symptoms</Text>
+                  </View>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statNumber}>
+                      {quickStats.totalNotes}
+                    </Text>
+                    <Text style={styles.statLabel}>Notes</Text>
+                  </View>
                 </View>
               </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color="rgba(255,255,255,0.7)"
-              />
-            </TouchableOpacity>
-          )}
+            )}
 
-          {/* Profile Switcher */}
-          {profiles.length > 1 && (
-            <View style={styles.profileSection}>
-              <Text style={styles.sectionTitle}>Switch Profile</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.profileSwitcher}>
-                  {profiles.map((profile) => (
-                    <TouchableOpacity
-                      key={profile.id}
-                      style={[
-                        styles.profileButton,
-                        activeProfile?.id === profile.id &&
-                          styles.activeProfileButton,
-                      ]}
-                      onPress={() => handleProfileSwitch(profile.id)}
-                    >
-                      <Text style={styles.profileEmoji}>{profile.emoji}</Text>
-                      {profile.name && (
-                        <Text style={styles.profileName}>{profile.name}</Text>
-                      )}
-                      {activeProfile?.id === profile.id && (
-                        <View style={styles.activeIndicator}>
-                          <Ionicons
-                            name="checkmark"
-                            size={12}
-                            color="#4CAF50"
-                          />
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  ))}
-
-                  <TouchableOpacity
-                    style={styles.addProfileButton}
-                    onPress={() => navigation.navigate("ProfileSelector")}
-                  >
-                    <Ionicons
-                      name="add"
-                      size={24}
-                      color="rgba(255,255,255,0.7)"
-                    />
-                    <Text style={styles.addProfileText}>Add</Text>
-                  </TouchableOpacity>
-                </View>
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Current Cycle Info */}
-          {activeProfile && (
-            <View style={styles.cycleSection}>
-              <Text style={styles.sectionTitle}>Current Cycle</Text>
-              <View style={styles.cycleCard}>
-                {currentCycle ? (
-                  <>
-                    <View style={styles.cycleHeader}>
-                      <Text style={styles.cycleTitle}>
-                        {currentCycle.isInPeriod ? "Period Day" : "Cycle Day"}{" "}
-                        {currentCycle.daysSinceStart + 1}
+            {/* Current Cycle Info */}
+            {activeProfile && (
+              <View style={styles.cycleSection}>
+                <Text style={styles.sectionTitle}>Current Cycle</Text>
+                {cycleInfo ? (
+                  <View style={styles.statusCard}>
+                    <View style={styles.statusHeader}>
+                      <Text style={styles.statusTitle}>
+                        {cycleInfo.isInPeriod ? "🩸 On Period" : "📅 Cycle Day"}
                       </Text>
-                      <Text style={styles.cycleStatus}>
-                        {currentCycle.isInPeriod ? "🩸 Period" : "📅 Tracking"}
+                      <Text style={styles.statusDay}>
+                        Day {cycleInfo.cycleDay}
                       </Text>
                     </View>
-                    <Text style={styles.cycleSubtitle}>
-                      Started: {format(currentCycle.startDate, "MMM dd, yyyy")}
-                    </Text>
-                    <Text style={styles.cycleNext}>
-                      Next Period:{" "}
-                      {format(currentCycle.predictedNextPeriod, "MMM dd")}
-                    </Text>
-                  </>
+
+                    <View style={styles.statusDetails}>
+                      <View style={styles.statusItem}>
+                        <Text style={styles.statusLabel}>Started</Text>
+                        <Text style={styles.statusValue}>
+                          {format(cycleInfo.startDate, "MMM dd")}
+                        </Text>
+                      </View>
+
+                      <View style={styles.statusItem}>
+                        <Text style={styles.statusLabel}>
+                          {cycleInfo.daysUntilNext > 0
+                            ? "Next Expected"
+                            : "Overdue"}
+                        </Text>
+                        <Text style={styles.statusValue}>
+                          {cycleInfo.daysUntilNext > 0
+                            ? `${cycleInfo.daysUntilNext} days`
+                            : `${Math.abs(cycleInfo.daysUntilNext)} days`}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Cycle Progress Bar */}
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${cycleInfo.progressPercentage}%` },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>
+                        {cycleInfo.progressPercentage.toFixed(0)}% through cycle
+                      </Text>
+                    </View>
+                  </View>
                 ) : (
-                  <>
-                    <Text style={styles.cycleTitle}>Ready to track</Text>
-                    <Text style={styles.cycleSubtitle}>
-                      Start by logging your period
+                  <View style={styles.statusCard}>
+                    <Text style={styles.statusTitle}>
+                      🌟 Ready to Start Tracking
+                    </Text>
+                    <Text style={styles.statusSubtitle}>
+                      Track your first period to begin cycle predictions
                     </Text>
                     <TouchableOpacity
                       style={styles.setupButton}
-                      onPress={() => navigation.navigate("PeriodSetup")}
+                      onPress={handleTrackPeriod}
                     >
-                      <Text style={styles.setupButtonText}>
-                        Setup Period Info
-                      </Text>
+                      <Text style={styles.setupButtonText}>Start Tracking</Text>
                     </TouchableOpacity>
-                  </>
+                  </View>
                 )}
               </View>
-            </View>
-          )}
+            )}
 
-          {/* Quick Actions */}
-          {activeProfile && (
-            <View style={styles.actionsSection}>
-              <Text style={styles.sectionTitle}>Quick Actions</Text>
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={handleTrackPeriod}
-                >
-                  <Ionicons
-                    name="add-circle-outline"
-                    size={32}
-                    color="#E91E63"
-                  />
-                  <Text style={styles.actionText}>Track Period</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => navigation.navigate("Calendar")}
-                >
-                  <Ionicons name="calendar-outline" size={32} color="#E91E63" />
-                  <Text style={styles.actionText}>View Calendar</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => navigation.navigate("Symptoms")}
-                >
-                  <Ionicons name="heart-outline" size={32} color="#E91E63" />
-                  <Text style={styles.actionText}>Log Symptoms</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => navigation.navigate("DataManagement")}
-                >
-                  <Ionicons
-                    name="document-text-outline"
-                    size={32}
-                    color="#E91E63"
-                  />
-                  <Text style={styles.actionText}>View Data</Text>
-                </TouchableOpacity>
+            {/* Quick Actions */}
+            {activeProfile && (
+              <View style={styles.actionsSection}>
+                <Text style={styles.sectionTitle}>Quick Actions</Text>
+                <View style={styles.actionButtons}>
+                  {quickActions.map((action, index) => (
+                    <QuickActionButton
+                      key={index}
+                      action={action}
+                      onPress={action.onPress}
+                    />
+                  ))}
+                </View>
               </View>
-            </View>
-          )}
+            )}
 
-          {/* No Profiles State */}
-          {profiles.length === 0 && (
-            <View style={styles.emptyState}>
-              <View style={styles.emptyIconContainer}>
-                <Image
-                  source={require("../assets/images/app-icon.png")}
-                  style={styles.emptyIcon}
-                  resizeMode="contain"
-                />
-              </View>
-              <Text style={styles.emptyTitle}>Welcome to CrampPanchayat!</Text>
-              <Text style={styles.emptySubtitle}>
-                Create your first profile to start tracking your cycle
-              </Text>
-              <TouchableOpacity
-                style={styles.createProfileButton}
-                onPress={() => navigation.navigate("ProfileSelector")}
-              >
-                <Text style={styles.createProfileButtonText}>
-                  Create Profile
+            {/* No Profiles State - Always show if no profiles */}
+            {(profiles.length === 0 ||
+              (!activeProfile && !loading && !switchingProfile)) && (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconContainer}>
+                  <Image
+                    source={require("../assets/images/app-icon.png")}
+                    style={styles.emptyIcon}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text style={styles.emptyTitle}>
+                  {profiles.length === 0
+                    ? "Welcome to CrampPanchayat!"
+                    : "Select a Profile"}
                 </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </ScrollView>
+                <Text style={styles.emptySubtitle}>
+                  {profiles.length === 0
+                    ? "Create your first profile to start tracking your cycle"
+                    : "Choose a profile to start tracking"}
+                </Text>
+                <TouchableOpacity
+                  style={styles.createProfileButton}
+                  onPress={() => navigation.navigate("ProfileSelector")}
+                >
+                  <Text style={styles.createProfileButtonText}>
+                    {profiles.length === 0
+                      ? "Create Profile"
+                      : "Select Profile"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </ScrollView>
+        </Animated.View>
       </LinearGradient>
     </View>
   );
@@ -489,10 +696,26 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0,
   },
+  animatedContainer: {
+    flex: 1,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  noProfileText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 20,
   },
   loadingText: {
     color: "white",
@@ -518,15 +741,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   appIconContainer: {
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.3)",
-    padding: 6,
-    marginRight: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
   },
   appIcon: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
+    marginRight: 12,
+  },
+  appName: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+  profileBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  profileBadgeLoading: {
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
+    opacity: 0.8,
+  },
+  profileInfo: {
+    marginLeft: 8,
+    marginRight: 6,
+  },
+  profileSubtext: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 11,
+  },
+  quoteSection: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "rgba(255, 255, 255, 0.4)",
   },
   headerTitle: {
     color: "white",
@@ -576,6 +832,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
+  statsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  statsGrid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  statCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    flex: 1,
+    minHeight: 60,
+    justifyContent: "center",
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#E91E63",
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: "#666",
+    textAlign: "center",
+    fontWeight: "500",
+  },
   sectionTitle: {
     color: "white",
     fontSize: 18,
@@ -607,9 +893,10 @@ const styles = StyleSheet.create({
   },
   profileName: {
     color: "white",
-    fontSize: 10,
-    fontWeight: "500",
+    fontSize: 14,
+    fontWeight: "600",
     textAlign: "center",
+    maxWidth: 80,
   },
   activeIndicator: {
     position: "absolute",
@@ -648,6 +935,55 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
   },
+  statusCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 16,
+    padding: 20,
+  },
+  statusHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  statusTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  statusDay: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#E91E63",
+  },
+  statusDetails: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  statusItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  statusLabel: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    fontWeight: "600",
+  },
+  statusValue: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "600",
+  },
+  statusSubtitle: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 16,
+    lineHeight: 20,
+  },
   cycleHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -672,6 +1008,31 @@ const styles = StyleSheet.create({
   cycleNext: {
     fontSize: 14,
     color: "#666",
+  },
+  daysUntilNext: {
+    fontSize: 12,
+    color: "#888",
+    fontWeight: "500",
+  },
+  progressContainer: {
+    marginTop: 16,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: "#f0f0f0",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#E91E63",
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
   },
   setupButton: {
     backgroundColor: "#E91E63",
@@ -709,6 +1070,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     marginTop: 8,
+    textAlign: "center",
+  },
+  actionSubtitle: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 4,
     textAlign: "center",
   },
   emptyState: {

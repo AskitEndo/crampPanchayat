@@ -168,52 +168,77 @@ const DataManagementScreen: React.FC = () => {
   };
 
   const handleDeleteAllData = () => {
+    // Get comprehensive stats for all profiles
+    const totalProfiles = profiles.length;
+    const totalCycles = profiles.reduce((sum, p) => sum + p.cycles.length, 0);
+    const totalSymptoms = profiles.reduce(
+      (sum, p) => sum + p.symptoms.length,
+      0
+    );
+    const totalNotes = profiles.reduce((sum, p) => sum + p.notes.length, 0);
+
     Alert.alert(
-      "🗑️ Delete All Data",
-      "⚠️ This will delete ALL app data including all profiles and cycles. This action cannot be undone.\n\nAre you absolutely sure?",
+      "🗑️ Delete All App Data",
+      `⚠️ This will PERMANENTLY delete ALL app data:\n\n📊 Complete Data Loss:\n• ${totalProfiles} profile(s)\n• ${totalCycles} cycle record(s)\n• ${totalSymptoms} symptom log(s)\n• ${totalNotes} note(s)\n\n🚨 This action is IRREVERSIBLE and will:\n• Erase all tracking history\n• Remove all profiles and data\n• Reset the app to factory state\n• Require complete re-setup\n\nAre you absolutely certain you want to delete EVERYTHING?`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Export First",
+          text: "Export All Data First",
           onPress: () => handleExportData(),
         },
         {
           text: "Delete Everything",
           style: "destructive",
-          onPress: async () => {
-            try {
-              const storage = StorageService.getInstance();
+          onPress: () => {
+            // Double confirmation for such a destructive action
+            Alert.alert(
+              "🚨 FINAL WARNING",
+              `This is your FINAL chance to prevent total data loss.\n\nYou are about to delete:\n✗ ALL ${totalProfiles} profiles\n✗ ALL ${
+                totalCycles + totalSymptoms + totalNotes
+              } data entries\n✗ EVERYTHING you've tracked\n\nThis CANNOT be undone. Type continues below to proceed.`,
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "YES, DELETE ALL",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      const storage = StorageService.getInstance();
 
-              // Clear all app data
-              const success = await storage.clearAllData();
+                      // Clear all app data
+                      const success = await storage.clearAllData();
 
-              if (success) {
-                Alert.alert(
-                  "✅ Data Cleared",
-                  "All app data has been permanently deleted. The app will restart to onboarding.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: () => {
-                        // Navigate back to onboarding
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Onboarding" }],
-                        });
-                      },
-                    },
-                  ]
-                );
-              } else {
-                Alert.alert(
-                  "Error",
-                  "Failed to clear all data. Please try again."
-                );
-              }
-            } catch (error) {
-              console.error("Clear data error:", error);
-              Alert.alert("Error", "Failed to clear data. Please try again.");
-            }
+                      if (success) {
+                        Alert.alert(
+                          "✅ All Data Deleted",
+                          "All app data has been permanently deleted. The app will restart to onboarding.",
+                          [
+                            {
+                              text: "OK",
+                              onPress: () => {
+                                // Navigate back to onboarding
+                                navigation.reset({
+                                  index: 0,
+                                  routes: [{ name: "Onboarding" }],
+                                });
+                              },
+                            },
+                          ]
+                        );
+                      } else {
+                        Alert.alert("Error", "Failed to clear all data.");
+                      }
+                    } catch (error) {
+                      console.error("Clear all data error:", error);
+                      Alert.alert(
+                        "Error",
+                        "Failed to delete all data. Please try again."
+                      );
+                    }
+                  },
+                },
+              ]
+            );
           },
         },
       ]

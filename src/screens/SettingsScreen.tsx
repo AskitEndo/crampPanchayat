@@ -125,6 +125,63 @@ const SettingsScreen: React.FC = () => {
       return;
     }
 
+    // Check if this is the last profile
+    if (profiles.length === 1) {
+      Alert.alert(
+        `🗑️ Delete Last Profile`,
+        `⚠️ This is your ONLY profile. Deleting it will:\n\n• Delete ALL data for ${
+          activeProfile.emoji
+        } ${
+          activeProfile.name || "Unnamed"
+        }\n• Reset the entire app to onboarding\n• Remove ${
+          profileStats?.cyclesTracked || 0
+        } cycles, ${profileStats?.symptomsLogged || 0} symptoms, and ${
+          profileStats?.notesWritten || 0
+        } notes\n\n🚨 This action cannot be undone and will erase EVERYTHING.\n\nAre you absolutely sure?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Export First",
+            onPress: () => handleExportProfileData(),
+          },
+          {
+            text: "Delete Everything",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const storage = StorageService.getInstance();
+                await storage.deleteProfile(activeProfile.id);
+
+                Alert.alert(
+                  "✅ Profile Deleted",
+                  "All app data has been permanently deleted. The app will restart to onboarding.",
+                  [
+                    {
+                      text: "OK",
+                      onPress: () => {
+                        navigation.reset({
+                          index: 0,
+                          routes: [{ name: "Onboarding" }],
+                        });
+                      },
+                    },
+                  ]
+                );
+              } catch (error) {
+                console.error("Delete profile error:", error);
+                Alert.alert(
+                  "Error",
+                  "Failed to delete profile. Please try again."
+                );
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // Standard profile deletion (multiple profiles exist)
     Alert.alert(
       `🗑️ Delete Profile Data`,
       `⚠️ This will delete ALL data for your ${activeProfile.emoji} ${
@@ -146,27 +203,37 @@ const SettingsScreen: React.FC = () => {
           onPress: async () => {
             try {
               const storage = StorageService.getInstance();
+
+              // Find the profile to switch to (previous/older profile)
+              const currentIndex = profiles.findIndex(
+                (p) => p.id === activeProfile.id
+              );
+              const remainingProfiles = profiles.filter(
+                (p) => p.id !== activeProfile.id
+              );
+
+              // Select the previous profile if possible, otherwise the first remaining
+              let targetProfile;
+              if (currentIndex > 0) {
+                // Select the profile that comes before this one in the list
+                targetProfile = profiles[currentIndex - 1];
+              } else {
+                // If this was the first profile, select the next one (which becomes first after deletion)
+                targetProfile = remainingProfiles[0];
+              }
+
               await storage.deleteProfile(activeProfile.id);
 
               Alert.alert(
                 "✅ Profile Deleted",
-                "Profile data has been permanently deleted.",
+                `Profile data has been permanently deleted.\n\nSwitched to ${
+                  targetProfile.emoji
+                } ${targetProfile.name || "Unnamed"} profile.`,
                 [
                   {
                     text: "OK",
                     onPress: () => {
-                      // Switch to another profile if available, or go to onboarding
-                      const remainingProfiles = profiles.filter(
-                        (p) => p.id !== activeProfile.id
-                      );
-                      if (remainingProfiles.length > 0) {
-                        selectProfile(remainingProfiles[0].id);
-                      } else {
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: "Onboarding" }],
-                        });
-                      }
+                      selectProfile(targetProfile.id);
                     },
                   },
                 ]

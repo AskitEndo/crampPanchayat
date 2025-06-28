@@ -149,12 +149,20 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   /**
-   * Delete a profile with proper cleanup
+   * Delete a profile with improved selection logic
    */
   const deleteProfile = useCallback(
     async (profileId: string): Promise<void> => {
       try {
         updateState({ error: null });
+
+        // Find the current profile index before deletion
+        const currentIndex = state.profiles.findIndex(
+          (p) => p.id === profileId
+        );
+        if (currentIndex === -1) {
+          throw new Error("Profile not found");
+        }
 
         // Delete from storage
         await storage.deleteProfile(profileId);
@@ -166,16 +174,28 @@ export function useProfiles(): UseProfilesReturn {
         let updatedActiveProfile =
           state.activeProfile?.id === profileId ? null : state.activeProfile;
 
-        // Auto-select the last remaining profile if we deleted the active one
+        // Smart profile selection logic
         if (
           state.activeProfile?.id === profileId &&
-          updatedProfiles.length === 1
+          updatedProfiles.length > 0
         ) {
-          updatedActiveProfile = updatedProfiles[0];
+          // Select the previous profile if possible, otherwise the next one
+          let targetProfile;
+          if (currentIndex > 0) {
+            // Select the profile that was before this one
+            targetProfile = state.profiles[currentIndex - 1];
+          } else {
+            // If this was the first profile, select what becomes the first
+            targetProfile = updatedProfiles[0];
+          }
+
+          updatedActiveProfile = targetProfile;
           // Also update storage to set this as active
           await storage.setActiveProfile(updatedActiveProfile.id);
           console.log(
-            `Auto-selected last remaining profile: ${updatedActiveProfile.emoji}`
+            `Auto-selected profile: ${updatedActiveProfile.emoji} ${
+              updatedActiveProfile.name || "Unnamed"
+            }`
           );
         }
 

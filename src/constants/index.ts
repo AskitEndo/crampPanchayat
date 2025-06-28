@@ -424,3 +424,209 @@ export const EDUCATIONAL_TIPS = [
   "Heat therapy can help with cramps",
   "Getting enough sleep supports hormonal balance",
 ] as const;
+
+// Performance and UX Constants
+export const PERFORMANCE_CONFIG = {
+  ANIMATION_DURATION: 300,
+  DEBOUNCE_DELAY: 500,
+  CACHE_TTL: 300000, // 5 minutes
+  MAX_SUGGESTIONS: 4,
+  AUTO_SAVE_DELAY: 2000,
+} as const;
+
+// Enhanced UI Configuration
+export const UI_CONFIG = {
+  BORDER_RADIUS: {
+    SMALL: 8,
+    MEDIUM: 12,
+    LARGE: 16,
+    EXTRA_LARGE: 20,
+  },
+  SPACING: {
+    XS: 4,
+    SM: 8,
+    MD: 12,
+    LG: 16,
+    XL: 20,
+    XXL: 24,
+  },
+  COLORS: {
+    PRIMARY: "#E91E63",
+    PRIMARY_DARK: "#AD1457",
+    SECONDARY: "#4ECDC4",
+    SUCCESS: "#4CAF50",
+    WARNING: "#FF9800",
+    ERROR: "#F44336",
+    WHITE_TRANSPARENT: "rgba(255,255,255,0.2)",
+    WHITE_SEMI_TRANSPARENT: "rgba(255,255,255,0.15)",
+    BLACK_OVERLAY: "rgba(0,0,0,0.5)",
+  },
+} as const;
+
+// Enhanced Symptom Suggestions by Category
+export const SYMPTOM_SUGGESTIONS_ENHANCED = {
+  PAIN_RELIEF: [
+    "🔥 Apply heat therapy (heating pad for 15-20 mins)",
+    "❄️ Try cold compress for headaches (10-15 mins)",
+    "🧘‍♀️ Practice deep breathing exercises",
+    "🚶‍♀️ Light exercise like walking or gentle yoga",
+    "🛁 Take a warm bath with Epsom salts",
+  ],
+  HYDRATION: [
+    "💧 Drink 8-10 glasses of water daily",
+    "🫖 Try herbal teas (ginger, chamomile, peppermint)",
+    "🥤 Avoid excessive caffeine and alcohol",
+    "🍋 Add lemon to water for better absorption",
+  ],
+  NUTRITION: [
+    "🥗 Eat iron-rich foods (spinach, lentils, lean meat)",
+    "🍌 Include potassium-rich foods (bananas, avocados)",
+    "🥜 Snack on nuts and seeds for healthy fats",
+    "🍓 Choose dark chocolate (70%+ cacao) for cravings",
+    "🥦 Eat antioxidant-rich foods for skin health",
+  ],
+  SLEEP_WELLNESS: [
+    "😴 Aim for 7-9 hours of quality sleep",
+    "📱 Limit screen time 1 hour before bed",
+    "🌡️ Keep bedroom cool and dark",
+    "🫖 Try chamomile tea before bedtime",
+    "📖 Read or practice relaxation techniques",
+  ],
+  EMOTIONAL_CARE: [
+    "🧘‍♀️ Practice mindfulness meditation",
+    "📱 Connect with supportive friends/family",
+    "🎵 Listen to calming music",
+    "📝 Journal your thoughts and feelings",
+    "🌸 Practice self-compassion and patience",
+  ],
+} as const;
+
+// Quick Tips for Common Symptoms
+export const QUICK_SYMPTOM_TIPS: Record<SymptomType, string[]> = {
+  headache: [
+    "💧 Stay hydrated throughout the day",
+    "😴 Rest in a quiet, dark room",
+    "❄️ Apply cold compress to forehead",
+    "🧘‍♀️ Try relaxation techniques",
+  ],
+  cramps: [
+    "🔥 Use heating pad on lower abdomen",
+    "🚶‍♀️ Gentle exercise like walking",
+    "🛁 Take warm baths",
+    "💊 Consider anti-inflammatory medication",
+  ],
+  fatigue: [
+    "😴 Prioritize quality sleep",
+    "🥗 Eat iron-rich foods",
+    "🌱 Take short energy walks",
+    "☕ Limit caffeine crashes",
+  ],
+  nausea: [
+    "🫖 Try ginger tea or chews",
+    "🍋 Eat small, frequent meals",
+    "🍪 Keep crackers nearby",
+    "💨 Get fresh air and breathe deeply",
+  ],
+  bloating: [
+    "🥤 Drink peppermint tea",
+    "🚫 Avoid carbonated drinks",
+    "🤸‍♀️ Try gentle abdominal massage",
+    "🥬 Eat potassium-rich foods",
+  ],
+  mood_swings: [
+    "🧘‍♀️ Practice mindfulness",
+    "📱 Connect with loved ones",
+    "🎵 Listen to calming music",
+    "📝 Write in a journal",
+  ],
+  acne: [
+    "🧴 Use gentle skincare",
+    "🚫 Avoid touching your face",
+    "💧 Stay hydrated",
+    "🥦 Eat antioxidant-rich foods",
+  ],
+  breast_tenderness: [
+    "👙 Wear supportive bra",
+    "❄️ Apply cold compress",
+    "🚫 Limit caffeine and salt",
+    "🤗 Wear loose clothing",
+  ],
+  insomnia: [
+    "📱 No screens before bed",
+    "🫖 Try chamomile tea",
+    "🌡️ Keep room cool",
+    "📖 Read before sleeping",
+  ],
+  food_cravings: [
+    "🍓 Choose dark chocolate",
+    "🥜 Keep healthy snacks ready",
+    "💧 Drink water first",
+    "🍽️ Eat balanced meals",
+  ],
+  backache: [
+    "🔥 Apply heat therapy",
+    "🧘‍♀️ Do gentle stretches",
+    "💆‍♀️ Try self-massage",
+    "🛏️ Use supportive pillow",
+  ],
+  diarrhea: [
+    "� Stay hydrated",
+    "🍌 Eat BRAT foods (banana, rice, applesauce, toast)",
+    "🫖 Try peppermint tea",
+    "🚫 Avoid dairy and caffeine",
+  ],
+  hot_flashes: [
+    "🌬️ Use fans and cool air",
+    "👕 Dress in layers",
+    "� Stay hydrated",
+    "❄️ Apply cool cloths",
+  ],
+  cold_chills: [
+    "🧥 Layer warm clothing",
+    "🫖 Drink warm beverages",
+    "🛁 Take warm baths",
+    "🔥 Use heating pads",
+  ],
+  dizziness: [
+    "💧 Stay hydrated",
+    "🪑 Sit or lie down slowly",
+    "🍯 Maintain blood sugar levels",
+    "🌬️ Get fresh air",
+  ],
+  anxiety: [
+    "🧘‍♀️ Practice deep breathing",
+    "🚶‍♀️ Try gentle exercise",
+    "📱 Connect with support",
+    "🎵 Listen to calming music",
+  ],
+  depression: [
+    "☀️ Get natural sunlight",
+    "🚶‍♀️ Stay physically active",
+    "📱 Reach out to loved ones",
+    "💝 Practice self-care",
+  ],
+  irritability: [
+    "🧘‍♀️ Take deep breaths",
+    "🚶‍♀️ Take a short walk",
+    "🎵 Listen to soothing music",
+    "💤 Ensure adequate rest",
+  ],
+  joint_pain: [
+    "🛁 Take warm baths",
+    "🚶‍♀️ Do light movement",
+    "❄️ Use ice for swelling",
+    "💊 Consider anti-inflammatories",
+  ],
+  tender_skin: [
+    "🧴 Use gentle skincare products",
+    "☀️ Avoid harsh chemicals",
+    "💧 Keep skin moisturized",
+    "🧊 Apply cool compresses",
+  ],
+  constipation: [
+    "💧 Increase water intake",
+    "🥗 Eat more fiber",
+    "🚶‍♀️ Stay active",
+    "🍇 Try prunes or fiber supplements",
+  ],
+} as const;
