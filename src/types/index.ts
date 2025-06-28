@@ -155,6 +155,7 @@ export type RootStackParamList = {
   Settings: { profileId: string };
   Sync: { profileId: string };
   Donation: undefined;
+  Support: { showDonationPrompt?: boolean } | undefined;
 };
 
 export type TabParamList = {

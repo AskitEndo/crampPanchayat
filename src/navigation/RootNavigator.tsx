@@ -18,6 +18,7 @@ import DataManagementScreen from "../screens/DataManagementScreen";
 import PeriodSetupScreen from "../screens/PeriodSetupScreen";
 import SymptomsScreen from "../screens/SymptomsScreen";
 import SettingsScreen from "../screens/SettingsScreen";
+import SupportScreen from "../screens/SupportScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -128,6 +129,7 @@ const RootNavigator: React.FC = () => {
         />
         <Stack.Screen name="DataManagement" component={DataManagementScreen} />
         <Stack.Screen name="PeriodSetup" component={PeriodSetupScreen} />
+        <Stack.Screen name="Support" component={SupportScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

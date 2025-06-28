@@ -290,23 +290,6 @@ const SettingsScreen: React.FC = () => {
             <View style={styles.settingsCard}>
               <View style={styles.settingRow}>
                 <View style={styles.settingInfo}>
-                  <Text style={styles.settingLabel}>Dark Mode</Text>
-                  <Text style={styles.settingDescription}>Use dark theme</Text>
-                </View>
-                <Switch
-                  value={activeProfile.settings.darkMode}
-                  onValueChange={(value) =>
-                    handleToggleSetting("darkMode", value)
-                  }
-                  trackColor={{ false: "#E0E0E0", true: "#81C784" }}
-                  thumbColor={
-                    activeProfile.settings.darkMode ? "#4CAF50" : "#f4f3f4"
-                  }
-                />
-              </View>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingInfo}>
                   <Text style={styles.settingLabel}>Reminders</Text>
                   <Text style={styles.settingDescription}>
                     Period tracking reminders
@@ -346,6 +329,33 @@ const SettingsScreen: React.FC = () => {
                   }
                 />
               </View>
+            </View>
+          </View>
+
+          {/* Support & Donation - Highlighted */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>💝 Support Development</Text>
+            <View style={styles.donationCard}>
+              <TouchableOpacity
+                style={styles.donationAction}
+                onPress={() => navigation.navigate("Support")}
+              >
+                <View style={styles.donationIconContainer}>
+                  <Ionicons name="heart" size={28} color="#E91E63" />
+                </View>
+                <View style={styles.donationInfo}>
+                  <Text style={styles.donationLabel}>
+                    Support CrampPanchayat
+                  </Text>
+                  <Text style={styles.donationDescription}>
+                    Help keep the app free & privacy-focused
+                  </Text>
+                  <Text style={styles.donationHighlight}>
+                    ✨ UPI donations available • Meet the developer
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color="#E91E63" />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -630,6 +640,55 @@ const styles = StyleSheet.create({
     color: "#333",
     marginTop: 8,
     textAlign: "center",
+  },
+  donationCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.98)",
+    borderRadius: 15,
+    padding: 4,
+    borderWidth: 2,
+    borderColor: "#E91E63",
+    shadowColor: "#E91E63",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  donationAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "white",
+    borderRadius: 12,
+  },
+  donationIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#FFE8F0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 15,
+  },
+  donationInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  donationLabel: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#E91E63",
+    marginBottom: 4,
+  },
+  donationDescription: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 6,
+  },
+  donationHighlight: {
+    fontSize: 12,
+    color: "#E91E63",
+    fontWeight: "600",
+    fontStyle: "italic",
   },
 });
 

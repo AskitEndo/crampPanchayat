@@ -21,6 +21,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList, EmojiType } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
 import { AVAILABLE_EMOJIS } from "../constants";
+import { donationPromptManager } from "../utils/donationPrompt";
 
 type ProfileSelectorNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -58,7 +59,18 @@ const ProfileSelectorScreen: React.FC = () => {
       setShowCreateModal(false);
       setSelectedEmoji(null);
       setProfileName("");
-      Alert.alert("Success", "Profile created successfully!");
+      Alert.alert("Success", "Profile created successfully!", [
+        {
+          text: "Great!",
+          onPress: async () => {
+            // Show donation prompt if enabled
+            await donationPromptManager.showDonationPromptIfEnabled(
+              navigation,
+              "profile_created"
+            );
+          },
+        },
+      ]);
     } catch (error) {
       Alert.alert(
         "Error",

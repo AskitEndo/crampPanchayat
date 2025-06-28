@@ -4,8 +4,10 @@
     "slug": "cramppanchayat",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./src/assets/images/app-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./src/assets/images/app-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#E91E63"
     },
@@ -16,6 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./src/assets/images/app-icon.png",
         "backgroundColor": "#E91E63"
       },
       "package": "com.cramppanchayat.app"

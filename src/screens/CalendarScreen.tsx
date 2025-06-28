@@ -28,6 +28,7 @@ import {
   TRACKING_SUCCESS_QUOTES,
   SYMPTOMS,
 } from "../constants";
+import { donationPromptManager } from "../utils/donationPrompt";
 
 type CalendarNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<TabParamList, "Calendar">,
@@ -392,7 +393,19 @@ const CalendarScreen: React.FC = () => {
                 ];
               Alert.alert(
                 "Period Tracked! ✨",
-                `Great! Your tracking is working perfectly. ${successQuote}`
+                `Great! Your tracking is working perfectly. ${successQuote}`,
+                [
+                  {
+                    text: "Awesome!",
+                    onPress: async () => {
+                      // Show donation prompt if enabled
+                      await donationPromptManager.showDonationPromptIfEnabled(
+                        navigation as any,
+                        "period_confirmed"
+                      );
+                    },
+                  },
+                ]
               );
             },
           },
@@ -408,7 +421,18 @@ const CalendarScreen: React.FC = () => {
             text: "Confirm",
             onPress: async () => {
               await trackPeriodForDate(dateString);
-              Alert.alert("Success! 🌺", "Period day marked successfully!");
+              Alert.alert("Success! 🌺", "Period day marked successfully!", [
+                {
+                  text: "Great!",
+                  onPress: async () => {
+                    // Show donation prompt if enabled
+                    await donationPromptManager.showDonationPromptIfEnabled(
+                      navigation as any,
+                      "period_confirmed"
+                    );
+                  },
+                },
+              ]);
             },
           },
         ]

@@ -14,6 +14,7 @@ import {
   RefreshControl,
   StatusBar,
   Platform,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,6 +24,7 @@ import { RootStackParamList } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
 import { format, differenceInDays, addDays } from "date-fns";
 import { MOTIVATIONAL_QUOTES } from "../constants";
+import { donationPromptManager } from "../utils/donationPrompt";
 
 type HomeNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -175,9 +177,21 @@ const HomeScreen: React.FC = () => {
             });
             Alert.alert(
               "Success! 🎉",
-              "Period start logged for today! Your new cycle has been created and tracking has begun."
+              "Period start logged for today! Your new cycle has been created and tracking has begun.",
+              [
+                {
+                  text: "Great!",
+                  onPress: async () => {
+                    await refreshProfiles(); // Refresh to show new data
+                    // Show donation prompt if enabled
+                    await donationPromptManager.showDonationPromptIfEnabled(
+                      navigation,
+                      "cycle_started"
+                    );
+                  },
+                },
+              ]
             );
-            await refreshProfiles(); // Refresh to show new data
           } catch (error) {
             console.error("Error logging period:", error);
             Alert.alert("Error", "Failed to log period start");
@@ -236,7 +250,17 @@ const HomeScreen: React.FC = () => {
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>CrampPanchayat</Text>
+            <View style={styles.headerLeft}>
+              <View style={styles.appIconContainer}>
+                {/* <Ionicons name="heart" size={28} color="#E91E63" /> */}
+                <Image
+                  source={require("../assets/images/app-icon.png")}
+                  style={styles.appIcon}
+                  resizeMode="contain"
+                />
+              </View>
+              <Text style={styles.headerTitle}>CrampPanchayat</Text>
+            </View>
             <View style={styles.headerButtons}>
               <TouchableOpacity
                 style={styles.headerButton}
@@ -486,6 +510,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  appIconContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 12,
+    padding: 8,
+    marginRight: 12,
+  },
+  appIcon: {
+    width: 50,
+    height: 50,
   },
   headerTitle: {
     color: "white",
