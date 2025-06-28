@@ -1,12 +1,19 @@
+# CrampPanchayat - React Native/Expo .gitignore
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
+# Dependencies
 node_modules/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+yarn.lock
+package-lock.json
 
 # Expo
 .expo/
 dist/
 web-build/
+expo-env.d.ts
 
 # Native
 *.orig.*
@@ -15,11 +22,13 @@ web-build/
 *.p12
 *.key
 *.mobileprovision
+*.hprof
 
 # Metro
 .metro-health-check*
+.metro-cache/
 
-# debug
+# Debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
@@ -28,14 +37,146 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# Local env files
 .env*.local
 .env
+.env.production
+.env.development
 
-# typescript
+# TypeScript
 *.tsbuildinfo
+*.d.ts
 
-app-example
+# VS Code
+.vscode/
+*.code-workspace
 
-.github
-# Ignore the .github directory
+# IntelliJ/Android Studio
+.idea/
+*.iml
+*.iws
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output/
+
+# Temporary folders
+tmp/
+temp/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Firebase
+.firebase/
+firebase-debug.log
+
+# Supabase
+.supabase/
+
+# React Native/Expo specific
+# Android
+android/app/build/
+android/app/release/
+android/.gradle/
+android/local.properties
+android/keystore.properties
+android/app/src/main/assets/fonts/
+
+# iOS
+ios/build/
+ios/Pods/
+ios/*.pbxuser
+ios/*.mode1v3
+ios/*.mode2v3
+ios/*.perspectivev3
+ios/*.xcuserstate
+ios/project.xcworkspace/
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+*.xcworkspace
+DerivedData/
+
+# Flipper
+android/app/src/debug/java/com/
+
+# Fastlane
+ios/fastlane/report.xml
+android/fastlane/report.xml
+
+# Jest
+jest-coverage/
+
+# App specific ignores
+app-example/
+.github/
+bin/
+lib/
+
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Build artifacts
+build/
+dist-*/
+
+# Documentation
+docs/build/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

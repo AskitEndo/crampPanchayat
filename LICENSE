@@ -1,0 +1,41 @@
+MIT License
+
+Copyright (c) 2024 Askit Endo Solutions - CrampPanchayat
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Privacy Commitment:
+
+CrampPanchayat is committed to user privacy and data protection. This software:
+
+1. Does not collect or store personal identifying information
+2. Uses emoji-based anonymous profiles for user identity
+3. Stores data locally by default (offline-first)
+4. Provides optional cloud sync with anonymous identifiers
+5. Allows users to export and delete all their data
+6. Implements privacy-by-design principles
+7. Complies with GDPR and similar privacy regulations
+
+The developers and contributors of CrampPanchayat respect menstrual health privacy
+and cultural sensitivity. This software is designed to empower users while
+protecting their personal information.
+
+For privacy questions or concerns, contact: privacy@cramppanchayat.com

@@ -1,14 +1,44 @@
 {
   "name": "cramppanchayat",
   "version": "1.0.0",
+  "description": "Privacy-first period tracking app with emoji-based anonymous profiles and offline-first architecture",
   "main": "node_modules/expo/AppEntry.js",
   "private": true,
+  "keywords": [
+    "period-tracking",
+    "menstrual-health",
+    "privacy-first",
+    "react-native",
+    "expo",
+    "offline-first",
+    "emoji-profiles",
+    "health-app",
+    "women-health",
+    "typescript"
+  ],
+  "author": {
+    "name": "Askit Endo Solutions",
+    "email": "support@cramppanchayat.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AskitEndo/cramppanchayat.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AskitEndo/cramppanchayat/issues"
+  },
+  "homepage": "https://github.com/AskitEndo/cramppanchayat#readme",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "eject": "expo eject"
+    "eject": "expo eject",
+    "test": "jest",
+    "lint": "eslint src/**/*.{ts,tsx}",
+    "type-check": "tsc --noEmit",
+    "clean": "expo r -c"
   },
   "devDependencies": {
     "@types/react": "~18.2.79",
