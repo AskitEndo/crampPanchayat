@@ -1,4 +1,27 @@
 {
-  "name": "crampPanchayat",
-  "slug": "crampPanchayat"
+  "expo": {
+    "name": "CrampPanchayat",
+    "slug": "cramppanchayat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#E91E63"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cramppanchayat.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E91E63"
+      },
+      "package": "com.cramppanchayat.app"
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
 }
