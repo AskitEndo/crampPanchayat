@@ -10,7 +10,7 @@
   [![React Native](https://img.shields.io/badge/React%20Native-0.74.5-blue.svg)](https://reactnative.dev/)
   [![Expo](https://img.shields.io/badge/Expo-51.0.28-black.svg)](https://expo.dev/)
   [![TypeScript](https://img.shields.io/badge/TypeScript-5.3.3-blue.svg)](https://www.typescriptlang.org/)
-  [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.txt)
+  [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 </div>
 
 ## 🌟 Overview
@@ -292,7 +292,7 @@ CrampPanchayat is free and open source. Support development through:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -300,13 +300,6 @@ This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.t
 - **Open Source Community**: Built with amazing open-source libraries
 - **Beta Testers**: Thank you to early users providing feedback
 - **Health Advocates**: Inspired by menstrual health awareness campaigns
-
-## 📞 Contact & Support
-
-- **Developer**: Askit Endo Solutions
-- **Email**: support@cramppanchayat.com
-- **GitHub**: [GitHub Repository](https://github.com/your-username/cramppanchayat)
-- **Issues**: [Report Issues](https://github.com/your-username/cramppanchayat/issues)
 
 ---
 

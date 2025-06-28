@@ -361,7 +361,7 @@ New contributors are welcome! We provide:
 
 ## 📄 License
 
-By contributing to CrampPanchayat, you agree that your contributions will be licensed under the MIT License.
+By contributing to CrampPanchayat, you agree that your contributions will be licensed under the Apache License 2.0.
 
 ---
 
