@@ -15,18 +15,16 @@
 
 ## 🌟 Overview
 
-CrampPanchayat is a revolutionary period tracking app that prioritizes user privacy and cultural sensitivity. Built with React Native and TypeScript, it offers an emoji-based anonymous profile system, ensuring users can track their menstrual health without compromising personal data.
+CrampPanchayat is a Offline first period tracking app that prioritizes user privacy and accountability. Built with React Native and TypeScript, it offers an emoji-based anonymous profile system, ensuring users can track their menstrual health without compromising personal data.
 
 ### ✨ Key Features
 
 - **🎭 Emoji-Based Anonymous Profiles**: Choose from 16 culturally diverse emojis (🩷, 🦋, 🌙, 🌟, etc.)
 - **📱 Offline-First Architecture**: Works completely offline with optional cloud sync
-- **🔒 Privacy-First Design**: No email, phone numbers, or personal information required
+- **🔒 Privacy-First Design**: No email, phone numbers, or personal information required or offline use
 - **📅 Smart Calendar Tracking**: Manual date selection with intelligent cycle predictions
 - **🩺 Comprehensive Symptom Tracking**: 13+ categories with intensity ratings and notes
 - **👨‍👩‍👧‍👦 Multi-User Support**: Family sharing on a single device
-- **💝 UPI Donation System**: Support app development through Indian payment apps
-- **🌍 Cultural Sensitivity**: Designed with diverse users and cultural contexts in mind
 
 ## 🏗️ Architecture
 
@@ -96,7 +94,7 @@ src/
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/cramppanchayat.git
+   git clone https://github.com/askitendo/cramppanchayat.git
    cd cramppanchayat
    ```
 
@@ -280,8 +278,8 @@ We welcome contributions from developers, designers, and health advocates!
 
 CrampPanchayat is free and open source. Support development through:
 
-- **UPI Donations**: Scan QR code in app (Indian users)
-- **GitHub Sponsors**: [Sponsor on GitHub](https://github.com/sponsors/your-username)
+- **UPI Donations**: Scan QR code in app
+- **GitHub Sponsors**: [Sponsor on GitHub](https://github.com/sponsors/askitendo)
 - **Contributions**: Code, design, translations, or documentation
 - **Spread the Word**: Share with friends and family
 
@@ -294,13 +292,6 @@ CrampPanchayat is free and open source. Support development through:
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- **Askit Endo Solutions**: Development and design by the team at Askit Endo
-- **Open Source Community**: Built with amazing open-source libraries
-- **Beta Testers**: Thank you to early users providing feedback
-- **Health Advocates**: Inspired by menstrual health awareness campaigns
-
 ---
 
 <div align="center">
@@ -308,5 +299,5 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
   
   **Made with 🩷 for menstrual health awareness**
   
-  *Empowering users with privacy-first period tracking*
+  *For people you love from people they love.*
 </div>
