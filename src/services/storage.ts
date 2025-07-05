@@ -127,7 +127,8 @@ class StorageService {
    */
   public async createProfile(
     emoji: EmojiType,
-    name?: string
+    name?: string,
+    setAsActive: boolean = false
   ): Promise<Profile> {
     const profiles = await this.getProfiles();
 
@@ -156,6 +157,11 @@ class StorageService {
 
     if (!saved) {
       throw new Error("Failed to save new profile");
+    }
+
+    // Auto-activate the new profile if requested
+    if (setAsActive) {
+      await this.setActiveProfile(newProfile.id);
     }
 
     return newProfile;
@@ -513,6 +519,34 @@ class StorageService {
       console.error("Failed to get storage stats:", error);
       throw error;
     }
+  }
+
+  /**
+   * Public helper to safely get items from storage (for use by other services)
+   */
+  public async getStorageItem<T>(key: string, defaultValue: T): Promise<T> {
+    return this.safeGetItem(key, defaultValue);
+  }
+
+  /**
+   * Public helper to safely set items to storage (for use by other services)
+   */
+  public async setStorageItem(key: string, value: any): Promise<boolean> {
+    return this.safeSetItem(key, value);
+  }
+
+  /**
+   * Public method to get custom data with default value
+   */
+  public async getCustomData<T>(key: string, defaultValue: T): Promise<T> {
+    return this.safeGetItem(key, defaultValue);
+  }
+
+  /**
+   * Public method to set custom data
+   */
+  public async setCustomData(key: string, value: any): Promise<boolean> {
+    return this.safeSetItem(key, value);
   }
 }
 

@@ -462,6 +462,20 @@ const SettingsScreen: React.FC = () => {
             <View style={styles.dataCard}>
               <TouchableOpacity
                 style={styles.dataAction}
+                onPress={() => navigation.navigate("SyncSettings")}
+              >
+                <Ionicons name="cloud-outline" size={24} color="#2196F3" />
+                <View style={styles.actionInfo}>
+                  <Text style={styles.actionLabel}>Cloud Sync</Text>
+                  <Text style={styles.actionDescription}>
+                    Backup & sync data across devices
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#999" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.dataAction}
                 onPress={handleExportProfileData}
               >
                 <Ionicons name="download-outline" size={24} color="#4CAF50" />

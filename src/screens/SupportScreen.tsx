@@ -358,7 +358,7 @@ const SupportScreen: React.FC = () => {
               Version 1.0.0 • Made with 🩷 for the community
             </Text>
             <Text style={[styles.versionText, { opacity: 0.2 }]}>
-              Importantly a gift to Darpan from Askit🩷✨
+              From Askit to Darpan — a whisper of magic 🩷✨
             </Text>
           </View>
         </ScrollView>

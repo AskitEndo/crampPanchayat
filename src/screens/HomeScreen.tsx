@@ -33,6 +33,8 @@ import { useProfiles } from "../hooks/useProfiles";
 import { format, differenceInDays, addDays, isToday } from "date-fns";
 import { MOTIVATIONAL_QUOTES } from "../constants";
 import { donationPromptManager } from "../utils/donationPrompt";
+import { CloudSyncService } from "../services/cloudSync";
+import { StorageService } from "../services/storage";
 
 type HomeNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -134,7 +136,7 @@ const HomeScreen: React.FC = () => {
     };
   }, [activeProfile]);
 
-  // Memoized quick stats with enhanced calculations
+  // Memoized quick stats with enhanced calculations and proper notes detection
   const quickStats = useMemo(() => {
     if (!activeProfile) return null;
 
@@ -144,10 +146,29 @@ const HomeScreen: React.FC = () => {
       return daysDiff <= 7; // Last 7 days
     });
 
+    // Count total notes from both direct notes and notes within symptoms
+    let totalNotesCount = activeProfile.notes.length;
+
+    // Add notes from symptoms that have notes
+    const symptomsWithNotes = activeProfile.symptoms.filter(
+      (s) => s.notes && s.notes.trim().length > 0
+    );
+    totalNotesCount += symptomsWithNotes.length;
+
+    // Add notes from cycles
+    activeProfile.cycles.forEach((cycle) => {
+      if (cycle.notes && typeof cycle.notes === "object") {
+        const cycleNotesCount = Object.values(cycle.notes).filter(
+          (note) => note && typeof note === "string" && note.trim().length > 0
+        ).length;
+        totalNotesCount += cycleNotesCount;
+      }
+    });
+
     return {
       totalCycles: activeProfile.cycles.length,
       totalSymptoms: activeProfile.symptoms.length,
-      totalNotes: activeProfile.notes.length,
+      totalNotes: totalNotesCount,
       recentSymptoms: recentSymptoms.length,
       averageCycleLength:
         activeProfile.cycles.length > 1
@@ -200,11 +221,21 @@ const HomeScreen: React.FC = () => {
     refreshQuote();
   }, [refreshQuote]);
 
-  // Focus effect with animation
+  // Focus effect with animation and auto-sync
   useFocusEffect(
     useCallback(() => {
       refreshQuote();
       startAnimation();
+
+      // Always refresh profiles when screen comes into focus
+      refreshProfiles();
+
+      // Trigger auto-sync when app comes to focus
+      const cloudSync = CloudSyncService.getInstance();
+      cloudSync.autoSync().catch((error) => {
+        console.log("Auto-sync failed (silent):", error);
+        // Don't show errors for auto-sync
+      });
 
       if (Platform.OS === "android") {
         StatusBar.setBarStyle("light-content", true);
@@ -217,7 +248,7 @@ const HomeScreen: React.FC = () => {
         fadeAnim.setValue(0);
         slideAnim.setValue(50);
       };
-    }, [refreshQuote, startAnimation, fadeAnim, slideAnim])
+    }, [refreshQuote, startAnimation, fadeAnim, slideAnim, refreshProfiles])
   );
 
   // Enhanced refresh handler with better error handling
@@ -275,7 +306,7 @@ const HomeScreen: React.FC = () => {
     [navigation]
   );
 
-  // Enhanced profile switching with better error handling
+  // Enhanced profile switching with better error handling and auto-refresh
   const handleProfileSwitch = useCallback(
     async (profileId?: string) => {
       if (profileId) {
@@ -285,6 +316,10 @@ const HomeScreen: React.FC = () => {
         try {
           console.log("Switching to profile:", profileId);
           await selectProfile(profileId);
+          // Force refresh after profile switch
+          setTimeout(() => {
+            refreshProfiles();
+          }, 100);
         } catch (err) {
           console.error("Profile switch error:", err);
           Alert.alert("Error", "Failed to switch profile. Please try again.", [
@@ -298,7 +333,7 @@ const HomeScreen: React.FC = () => {
         navigation.navigate("ProfileSelector");
       }
     },
-    [activeProfile?.id, selectProfile, navigation]
+    [activeProfile?.id, selectProfile, navigation, refreshProfiles]
   );
 
   // Handle period tracking
@@ -351,7 +386,6 @@ const HomeScreen: React.FC = () => {
         text: "Yes, Today",
         onPress: async () => {
           try {
-            const { StorageService } = await import("../services/storage");
             const storage = StorageService.getInstance();
             await storage.addCycleRecord(activeProfile.id, {
               startDate: new Date().toISOString(),
@@ -361,6 +395,10 @@ const HomeScreen: React.FC = () => {
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             });
+
+            // Immediately refresh profiles to show new data
+            await refreshProfiles();
+
             Alert.alert(
               "Success! 🎉",
               "Period start logged for today! Your new cycle has been created and tracking has begun.",
@@ -368,7 +406,8 @@ const HomeScreen: React.FC = () => {
                 {
                   text: "Great!",
                   onPress: async () => {
-                    await refreshProfiles(); // Refresh to show new data
+                    // Force another refresh to ensure UI is updated
+                    await refreshProfiles();
                     // Show donation prompt if enabled
                     await donationPromptManager.showDonationPromptIfEnabled(
                       navigation,
@@ -391,22 +430,12 @@ const HomeScreen: React.FC = () => {
     ]);
   };
 
-  // Show error if present
+  // Remove duplicate auto-refresh effect - we handle this in useFocusEffect now
   useEffect(() => {
     if (error) {
       Alert.alert("Error", error, [{ text: "OK", onPress: clearError }]);
     }
   }, [error, clearError]);
-
-  // Auto-refresh when screen comes into focus - but only if needed
-  useFocusEffect(
-    React.useCallback(() => {
-      // Only refresh if we don't have profiles or if we're not in the middle of switching
-      if (!switchingProfile && (profiles.length === 0 || !activeProfile)) {
-        refreshProfiles();
-      }
-    }, [refreshProfiles, switchingProfile, profiles.length, activeProfile])
-  );
 
   // Only show loading on initial load, not during profile switches
   if (loading && !refreshing && !switchingProfile && profiles.length === 0) {

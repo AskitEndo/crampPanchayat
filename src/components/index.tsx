@@ -558,6 +558,3 @@ const styles = StyleSheet.create({
     marginTop: SPACING.lg,
   },
 });
-
-// Export components
-export { default as ProfileSwitcher } from "./ProfileSwitcher";

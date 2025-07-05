@@ -162,6 +162,7 @@ export type RootStackParamList = {
   Analytics: { profileId: string };
   Settings: { profileId: string };
   Sync: { profileId: string };
+  SyncSettings: undefined;
   Donation: undefined;
   Support: { showDonationPrompt?: boolean } | undefined;
 };

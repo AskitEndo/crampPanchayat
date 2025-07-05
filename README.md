@@ -60,7 +60,7 @@ src/
 │   └── SupportScreen/   # Help and donations
 ├── services/           # Business logic and APIs
 │   ├── storage.ts      # AsyncStorage wrapper
-│   ├── supabase.ts     # Cloud sync service
+│   ├── supabase.ts     # Cloud sync service (import/export model)
 │   └── analytics.ts    # Anonymous usage tracking
 ├── hooks/              # Custom React hooks
 │   ├── useProfiles.ts  # Profile management logic
