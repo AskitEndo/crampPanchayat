@@ -623,7 +623,85 @@ class CloudSyncService {
   }
 
   /**
-   * Get sync settings from local storage
+   * Delete cloud account and all associated data
+   */
+  public async deleteCloudAccount(): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    try {
+      if (!this.currentState.isSignedIn) {
+        return {
+          success: false,
+          error: "Must be signed in to delete cloud account",
+        };
+      }
+
+      if (!(await this.isNetworkAvailable())) {
+        return {
+          success: false,
+          error:
+            "No internet connection. Please check your network and try again.",
+        };
+      }
+
+      this.updateState({ isLoading: true, error: undefined });
+
+      // Delete the account from Supabase (data + auth)
+      await SupabaseService.deleteAccount();
+
+      // Clear local sync settings for this profile
+      await this.saveSyncSettings({
+        enabled: false,
+        username: undefined,
+        lastSync: undefined,
+      });
+
+      // FIXED: Also clear cloud sync status from the current profile settings
+      const activeProfile = await this.storage.getActiveProfile();
+      if (activeProfile) {
+        // Clear cloud sync status from profile settings
+        await this.storage.updateProfile(activeProfile.id, {
+          settings: {
+            ...activeProfile.settings,
+            onlineSync: false,
+          },
+        });
+      }
+
+      // Update state to reflect deletion and unlinking
+      this.updateState({
+        isSignedIn: false,
+        username: undefined,
+        syncEnabled: false,
+        lastSync: undefined,
+        isLoading: false,
+        error: undefined,
+      });
+
+      console.log("Cloud account deleted and profile unlinked successfully");
+      return { success: true };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to delete cloud account";
+      console.error("Error deleting cloud account:", error);
+
+      this.updateState({
+        isLoading: false,
+        error: errorMessage,
+      });
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
+   * Get sync settings from local storage (profile-specific)
    */
   private async getSyncSettings(): Promise<{
     enabled: boolean;
@@ -631,14 +709,16 @@ class CloudSyncService {
     lastSync?: string;
   }> {
     try {
-      const settings = await this.storage.getStorageItem<any>(
-        "cramp_sync_settings",
-        {}
-      );
+      const activeProfile = await this.storage.getActiveProfile();
+      const settingsKey = activeProfile
+        ? `cramp_sync_settings_${activeProfile.id}`
+        : "cramp_sync_settings";
+
+      const settings = await this.storage.getCustomData(settingsKey, {});
       return {
-        enabled: settings.enabled || false,
-        username: settings.username,
-        lastSync: settings.lastSync,
+        enabled: (settings as any).enabled || false,
+        username: (settings as any).username,
+        lastSync: (settings as any).lastSync,
       };
     } catch (error) {
       console.error("Error getting sync settings:", error);
@@ -647,7 +727,7 @@ class CloudSyncService {
   }
 
   /**
-   * Save sync settings to local storage
+   * Save sync settings to local storage (profile-specific)
    */
   private async saveSyncSettings(settings: {
     enabled: boolean;
@@ -655,7 +735,12 @@ class CloudSyncService {
     lastSync?: string;
   }): Promise<void> {
     try {
-      await this.storage.setStorageItem("cramp_sync_settings", settings);
+      const activeProfile = await this.storage.getActiveProfile();
+      const settingsKey = activeProfile
+        ? `cramp_sync_settings_${activeProfile.id}`
+        : "cramp_sync_settings";
+
+      await this.storage.setCustomData(settingsKey, settings);
     } catch (error) {
       console.error("Error saving sync settings:", error);
     }
@@ -732,14 +817,70 @@ class CloudSyncService {
   }
 
   /**
-   * Export current profile data to cloud (for UI components)
+   * Check if current profile has any data worth syncing
    */
-  public async exportToCloud(): Promise<{
+  public async hasDataToSync(): Promise<{
+    hasData: boolean;
+    cycleCount: number;
+    symptomCount: number;
+    noteCount: number;
+  }> {
+    try {
+      const activeProfile = await this.storage.getActiveProfile();
+      if (!activeProfile) {
+        return {
+          hasData: false,
+          cycleCount: 0,
+          symptomCount: 0,
+          noteCount: 0,
+        };
+      }
+
+      const cycleCount = activeProfile.cycles?.length || 0;
+      const symptomCount = activeProfile.symptoms?.length || 0;
+      const noteCount = activeProfile.notes?.length || 0;
+
+      const hasData = cycleCount > 0 || symptomCount > 0 || noteCount > 0;
+
+      return {
+        hasData,
+        cycleCount,
+        symptomCount,
+        noteCount,
+      };
+    } catch (error) {
+      console.error("Error checking data to sync:", error);
+      return {
+        hasData: false,
+        cycleCount: 0,
+        symptomCount: 0,
+        noteCount: 0,
+      };
+    }
+  }
+
+  /**
+   * Enhanced export to cloud with data validation
+   */
+  public async exportToCloudSafe(): Promise<{
     success: boolean;
     message: string;
     error?: string;
   }> {
     try {
+      // First check if we have any data to export
+      const dataCheck = await this.hasDataToSync();
+
+      if (!dataCheck.hasData) {
+        return {
+          success: false,
+          message:
+            "No data to sync! Start tracking your cycle first.\n\nOnce you have cycles, symptoms, or notes recorded, you can sync them to the cloud.",
+          error: "NO_DATA_TO_SYNC",
+        };
+      }
+
+      // Proceed with normal export - inline implementation
       if (!this.currentState.isSignedIn) {
         return {
           success: false,
@@ -784,9 +925,9 @@ class CloudSyncService {
   }
 
   /**
-   * Import data from cloud to current profile (for UI components)
+   * Enhanced import from cloud with better empty state handling
    */
-  public async importFromCloud(): Promise<{
+  public async importFromCloudSafe(): Promise<{
     success: boolean;
     message: string;
     dataFound: boolean;
@@ -827,10 +968,26 @@ class CloudSyncService {
 
       if (!cloudData.hasData || !cloudData.data) {
         return {
-          success: true,
+          success: false,
           message:
-            "No cloud data found for this account. You can start tracking and export your data later.",
+            "No cloud data found for this account.\n\nTo sync data:\n1. Start tracking your cycle\n2. Export your data to cloud first\n3. Then you can import it on other devices",
           dataFound: false,
+          error: "NO_CLOUD_DATA",
+        };
+      }
+
+      // Check if cloud data is empty/minimal
+      const cycles = cloudData.data.cycles || [];
+      const symptoms = cloudData.data.symptoms || [];
+      const notes = cloudData.data.notes || [];
+
+      if (cycles.length === 0 && symptoms.length === 0 && notes.length === 0) {
+        return {
+          success: false,
+          message:
+            "Cloud account exists but contains no tracking data.\n\nExport your current data first, or start fresh by tracking your cycle.",
+          dataFound: false,
+          error: "EMPTY_CLOUD_DATA",
         };
       }
 
@@ -839,10 +996,9 @@ class CloudSyncService {
 
       return {
         success: true,
-        message:
-          "Data imported from cloud successfully. Your local data has been overwritten.",
+        message: `Data imported successfully!\n\n• ${cycles.length} cycles\n• ${symptoms.length} symptoms\n• ${notes.length} notes`,
         dataFound: true,
-        cyclesImported: cloudData.data.cycles.length,
+        cyclesImported: cycles.length,
       };
     } catch (error) {
       const errorMessage =
@@ -878,7 +1034,9 @@ class CloudSyncService {
    */
   public async switchProfile(profileId: string): Promise<boolean> {
     try {
-      // Auto sign out from cloud when switching profiles
+      console.log(`Switching to profile: ${profileId}`);
+
+      // Auto sign out from cloud when switching profiles - this ensures profile independence
       await this.handleProfileSwitch();
 
       // Switch to the new profile
@@ -886,8 +1044,11 @@ class CloudSyncService {
 
       if (success) {
         console.log(
-          `Switched to profile ${profileId} and signed out from cloud`
+          `Successfully switched to profile ${profileId} and signed out from cloud`
         );
+
+        // Re-initialize state for new profile
+        await this.initializeState();
       }
 
       return success;
@@ -905,17 +1066,22 @@ class CloudSyncService {
     name?: string
   ): Promise<Profile | null> {
     try {
-      // Auto sign out from cloud when creating new profile
+      console.log(`Creating new profile: ${emoji} ${name || ""}`);
+
+      // Auto sign out from cloud when creating new profile - ensures profile independence
       await this.handleProfileSwitch();
 
       // Create new profile and set as active
       const newProfile = await this.storage.createProfile(emoji, name, true);
 
       console.log(
-        `Created and switched to new profile: ${newProfile.emoji} ${
-          newProfile.name || ""
-        }`
+        `Successfully created and switched to new profile: ${
+          newProfile.emoji
+        } ${newProfile.name || ""}`
       );
+
+      // Re-initialize state for new profile
+      await this.initializeState();
 
       return newProfile;
     } catch (error) {
@@ -1029,6 +1195,81 @@ class CloudSyncService {
     } catch (error) {
       console.error("Error getting all linked cloud accounts:", error);
       return [];
+    }
+  }
+
+  /**
+   * Smart sync - uploads local data if cloud is empty, imports if cloud has data
+   */
+  public async smartSync(): Promise<{
+    success: boolean;
+    message: string;
+    action: "uploaded" | "downloaded" | "no_action";
+    error?: string;
+  }> {
+    try {
+      if (!this.currentState.isSignedIn) {
+        return {
+          success: false,
+          message: "You must be signed in to sync data",
+          action: "no_action",
+          error: "NOT_SIGNED_IN",
+        };
+      }
+
+      if (!(await this.isNetworkAvailable())) {
+        return {
+          success: false,
+          message:
+            "No internet connection. Please check your network and try again.",
+          action: "no_action",
+          error: "NO_NETWORK",
+        };
+      }
+
+      const activeProfile = await this.storage.getActiveProfile();
+      if (!activeProfile) {
+        return {
+          success: false,
+          message: "No active profile found to sync",
+          action: "no_action",
+          error: "NO_ACTIVE_PROFILE",
+        };
+      }
+
+      // Check if cloud has data
+      const cloudData = await SupabaseService.importDataFromCloud();
+
+      if (!cloudData.hasData || !cloudData.data) {
+        // Cloud is empty - upload local data to cloud
+        await SupabaseService.exportDataToCloud(activeProfile);
+
+        return {
+          success: true,
+          message:
+            "Local data uploaded to cloud successfully. Cloud was empty.",
+          action: "uploaded",
+        };
+      } else {
+        // Cloud has data - download and overwrite local data
+        await this.restoreCloudData(cloudData.data);
+
+        return {
+          success: true,
+          message:
+            "Cloud data downloaded and merged with local data successfully.",
+          action: "downloaded",
+        };
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Sync failed";
+      return {
+        success: false,
+        message: errorMessage,
+        action: "no_action",
+        error: "SYNC_ERROR",
+      };
     }
   }
 }

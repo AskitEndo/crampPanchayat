@@ -1,7 +1,7 @@
 // Profile Selector Screen - Enhanced Profile Management
 // Allows users to switch between profiles, create new ones, and manage existing profiles
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   TextInput,
   Modal,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,6 +37,7 @@ const ProfileSelectorScreen: React.FC = () => {
     profiles,
     activeProfile,
     loading,
+    switching,
     selectProfile,
     createProfile,
     deleteProfile,
@@ -46,6 +48,16 @@ const ProfileSelectorScreen: React.FC = () => {
   const [selectedEmoji, setSelectedEmoji] = useState<EmojiType | null>(null);
   const [profileName, setProfileName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [wasSwitch, setWasSwitch] = useState(false);
+
+  // Handle navigation after switching completes
+  useEffect(() => {
+    if (wasSwitch && !switching) {
+      // Profile switch completed, navigate back
+      setWasSwitch(false);
+      navigation.goBack();
+    }
+  }, [switching, wasSwitch, navigation]);
 
   const handleCreateProfile = async () => {
     if (!selectedEmoji) {
@@ -55,19 +67,32 @@ const ProfileSelectorScreen: React.FC = () => {
 
     try {
       setIsCreating(true);
-      await createProfile(selectedEmoji, profileName.trim() || undefined);
+
+      // Create and auto-switch to new profile
+      const newProfile = await createProfile(
+        selectedEmoji,
+        profileName.trim() || undefined
+      );
+
+      // Close modal and reset form
       setShowCreateModal(false);
       setSelectedEmoji(null);
       setProfileName("");
+
       Alert.alert("Success", "Profile created successfully!", [
         {
-          text: "Great!",
+          text: "Continue",
           onPress: async () => {
-            // Show donation prompt if enabled for all profile creations
-            await donationPromptManager.showDonationPromptIfEnabled(
-              navigation,
-              "profile_created"
-            );
+            // Navigate back to main first - this ensures the new profile is selected
+            navigation.goBack();
+
+            // Show donation prompt after navigation (delayed to ensure navigation completes)
+            setTimeout(async () => {
+              await donationPromptManager.showDonationPromptIfEnabled(
+                navigation,
+                "profile_created"
+              );
+            }, 500);
           },
         },
       ]);
@@ -109,10 +134,14 @@ const ProfileSelectorScreen: React.FC = () => {
   };
 
   const handleSelectProfile = async (profileId: string) => {
+    if (switching) return; // Prevent multiple switches
+
     try {
+      setWasSwitch(true);
       await selectProfile(profileId);
-      navigation.goBack();
+      // Navigation will be handled by useEffect when switching completes
     } catch (error) {
+      setWasSwitch(false);
       Alert.alert("Error", "Failed to select profile");
     }
   };
@@ -150,8 +179,10 @@ const ProfileSelectorScreen: React.FC = () => {
               style={[
                 styles.profileCard,
                 activeProfile?.id === profile.id && styles.activeProfileCard,
+                switching && styles.profileCardDisabled,
               ]}
               onPress={() => handleSelectProfile(profile.id)}
+              disabled={switching}
             >
               <View style={styles.profileInfo}>
                 <Text style={styles.profileEmoji}>{profile.emoji}</Text>
@@ -169,7 +200,12 @@ const ProfileSelectorScreen: React.FC = () => {
               </View>
 
               <View style={styles.profileActions}>
-                {activeProfile?.id === profile.id && (
+                {switching ? (
+                  <View style={styles.switchingIndicator}>
+                    <ActivityIndicator size="small" color="#E91E63" />
+                    <Text style={styles.switchingText}>Switching...</Text>
+                  </View>
+                ) : activeProfile?.id === profile.id ? (
                   <View style={styles.activeIndicator}>
                     <Ionicons
                       name="checkmark-circle"
@@ -178,13 +214,18 @@ const ProfileSelectorScreen: React.FC = () => {
                     />
                     <Text style={styles.activeText}>Active</Text>
                   </View>
-                )}
+                ) : null}
 
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => handleDeleteProfile(profile.id)}
+                  disabled={switching}
                 >
-                  <Ionicons name="trash-outline" size={16} color="#FF5252" />
+                  <Ionicons
+                    name="trash-outline"
+                    size={16}
+                    color={switching ? "#CCC" : "#FF5252"}
+                  />
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
@@ -465,6 +506,23 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     backgroundColor: "#F9F9F9",
+  },
+  switchingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "#FFE5EC",
+    borderRadius: 12,
+  },
+  switchingText: {
+    fontSize: 12,
+    color: "#E91E63",
+    fontWeight: "500",
+  },
+  profileCardDisabled: {
+    opacity: 0.6,
   },
 });
 

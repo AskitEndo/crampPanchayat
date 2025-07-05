@@ -147,23 +147,36 @@ const HomeScreen: React.FC = () => {
     });
 
     // Count total notes from both direct notes and notes within symptoms
-    let totalNotesCount = activeProfile.notes.length;
+    // FIXED: More accurate counting that doesn't double-count or include empty entries
+    let totalNotesCount = 0;
 
-    // Add notes from symptoms that have notes
-    const symptomsWithNotes = activeProfile.symptoms.filter(
-      (s) => s.notes && s.notes.trim().length > 0
-    );
-    totalNotesCount += symptomsWithNotes.length;
+    // Count direct notes (only non-empty ones)
+    if (activeProfile.notes && Array.isArray(activeProfile.notes)) {
+      totalNotesCount += activeProfile.notes.filter(
+        (note) => note && note.note && note.note.trim().length > 0
+      ).length;
+    }
 
-    // Add notes from cycles
-    activeProfile.cycles.forEach((cycle) => {
-      if (cycle.notes && typeof cycle.notes === "object") {
-        const cycleNotesCount = Object.values(cycle.notes).filter(
-          (note) => note && typeof note === "string" && note.trim().length > 0
-        ).length;
-        totalNotesCount += cycleNotesCount;
-      }
-    });
+    // Add notes from symptoms that have meaningful notes
+    if (activeProfile.symptoms && Array.isArray(activeProfile.symptoms)) {
+      const symptomsWithNotes = activeProfile.symptoms.filter(
+        (s) =>
+          s.notes && typeof s.notes === "string" && s.notes.trim().length > 0
+      );
+      totalNotesCount += symptomsWithNotes.length;
+    }
+
+    // Add notes from cycles (only meaningful cycle notes)
+    if (activeProfile.cycles && Array.isArray(activeProfile.cycles)) {
+      activeProfile.cycles.forEach((cycle) => {
+        if (cycle.notes && typeof cycle.notes === "object") {
+          const cycleNotesCount = Object.values(cycle.notes).filter(
+            (note) => note && typeof note === "string" && note.trim().length > 0
+          ).length;
+          totalNotesCount += cycleNotesCount;
+        }
+      });
+    }
 
     return {
       totalCycles: activeProfile.cycles.length,

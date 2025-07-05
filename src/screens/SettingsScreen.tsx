@@ -15,6 +15,7 @@ import {
   Platform,
   RefreshControl,
 } from "react-native";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
@@ -22,6 +23,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
 import { StorageService } from "../services/storage";
+import { CloudSyncService } from "../services/cloudSync";
 
 type SettingsNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -32,6 +34,8 @@ const SettingsScreen: React.FC = () => {
 
   const [profileStats, setProfileStats] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [cloudAccountsCount, setCloudAccountsCount] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   // Force refresh when screen is focused
   useFocusEffect(
@@ -51,8 +55,10 @@ const SettingsScreen: React.FC = () => {
         lastActive: new Date(activeProfile.lastActive).toLocaleDateString(),
       };
       setProfileStats(stats);
+      loadCloudAccountsCount();
     } else {
       setProfileStats(null);
+      setCloudAccountsCount(0);
     }
   }, [activeProfile]);
 
@@ -61,6 +67,258 @@ const SettingsScreen: React.FC = () => {
     setRefreshing(true);
     await refreshProfiles();
     setRefreshing(false);
+  };
+
+  const loadCloudAccountsCount = async () => {
+    try {
+      setStatsLoading(true);
+      // Add haptic feedback for user interaction
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // FIXED: Get actual unique cloud user statistics, not device-specific accounts
+      const { SupabaseService } = await import("../services/supabase");
+      const cloudStats = await SupabaseService.getCloudUserStatistics();
+
+      if (cloudStats.error) {
+        console.warn("Error getting cloud statistics:", cloudStats.error);
+        setCloudAccountsCount(0);
+      } else {
+        // Use total unique cloud users instead of device-specific accounts
+        setCloudAccountsCount(cloudStats.totalUsers);
+        console.log("Cloud statistics loaded:", cloudStats);
+      }
+    } catch (error) {
+      console.error("Failed to load cloud statistics:", error);
+      setCloudAccountsCount(0);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  const handleManageCloudAccounts = async () => {
+    try {
+      // SECURITY FIX: Only show cloud accounts from THIS device's profiles
+      const deviceProfiles = await StorageService.getInstance().getProfiles();
+      const deviceCloudAccounts = [];
+
+      for (const profile of deviceProfiles) {
+        try {
+          // Temporarily switch to this profile to check its cloud status
+          const originalActiveProfile =
+            await StorageService.getInstance().getActiveProfile();
+          await StorageService.getInstance().setActiveProfile(profile.id);
+
+          const cloudSync = CloudSyncService.getInstance();
+          const accounts = await cloudSync.getLinkedCloudAccounts();
+
+          if (accounts.length > 0) {
+            deviceCloudAccounts.push({
+              profileId: profile.id,
+              emoji: profile.emoji,
+              name: profile.name || "Unnamed",
+              accounts: accounts,
+            });
+          }
+
+          // Restore original active profile
+          if (originalActiveProfile) {
+            await StorageService.getInstance().setActiveProfile(
+              originalActiveProfile.id
+            );
+          }
+        } catch (error) {
+          console.warn(
+            `Could not check cloud accounts for profile ${profile.emoji}:`,
+            error
+          );
+        }
+      }
+
+      if (deviceCloudAccounts.length === 0) {
+        Alert.alert(
+          "No Cloud Accounts",
+          "No cloud accounts are currently linked to profiles on this device. You can set up cloud sync from the Data Management section above.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
+      // Create device-specific account list (no sensitive info leaked)
+      const accountDetails = deviceCloudAccounts
+        .map(
+          (profile) =>
+            `${profile.emoji} ${profile.name}: ${profile.accounts.length} linked`
+        )
+        .join("\n");
+
+      Alert.alert(
+        "Device Cloud Accounts",
+        `Profiles with cloud sync on this device:\n\n${accountDetails}\n\nFor security, only accounts linked on this device are shown.`,
+        [
+          {
+            text: "Manage Account",
+            onPress: () => handleUnlinkAccount(deviceCloudAccounts),
+          },
+          { text: "Close", style: "cancel" },
+        ]
+      );
+    } catch (error) {
+      console.error("Error managing cloud accounts:", error);
+      Alert.alert(
+        "Error",
+        "Failed to load cloud account information. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
+  };
+
+  const handleUnlinkAccount = async (
+    deviceAccounts: {
+      profileId: string;
+      emoji: string;
+      name: string;
+      accounts: string[];
+    }[]
+  ) => {
+    try {
+      if (deviceAccounts.length === 0) {
+        Alert.alert("No Accounts", "No accounts available to unlink.", [
+          { text: "OK" },
+        ]);
+        return;
+      }
+
+      // If there's only one profile with cloud accounts, directly manage it
+      if (deviceAccounts.length === 1) {
+        const profile = deviceAccounts[0];
+
+        Alert.alert(
+          "Manage Cloud Account",
+          `Profile: ${profile.emoji} ${profile.name}\nCloud accounts linked: ${profile.accounts.length}\n\nChoose an action:`,
+          [
+            {
+              text: "Sign Out & Unlink",
+              onPress: async () => {
+                try {
+                  // Switch to this profile and sign out
+                  const originalActiveProfile =
+                    await StorageService.getInstance().getActiveProfile();
+                  await StorageService.getInstance().setActiveProfile(
+                    profile.profileId
+                  );
+
+                  const cloudSync = CloudSyncService.getInstance();
+                  await cloudSync.signOut();
+
+                  // Restore original active profile
+                  if (originalActiveProfile) {
+                    await StorageService.getInstance().setActiveProfile(
+                      originalActiveProfile.id
+                    );
+                  }
+
+                  // Reload the count
+                  await loadCloudAccountsCount();
+
+                  Alert.alert(
+                    "Cloud Account Unlinked",
+                    `Profile ${profile.emoji} ${profile.name} has been signed out and unlinked from cloud sync.`,
+                    [{ text: "OK" }]
+                  );
+                } catch (error) {
+                  console.error("Error unlinking account:", error);
+                  Alert.alert(
+                    "Error",
+                    "Failed to unlink the account. Please try again.",
+                    [{ text: "OK" }]
+                  );
+                }
+              },
+            },
+            {
+              text: "Delete Cloud Account",
+              style: "destructive",
+              onPress: async () => {
+                Alert.alert(
+                  "⚠️ Delete Cloud Account",
+                  `This will PERMANENTLY delete the cloud account and ALL its data from our servers.\n\nThis action cannot be undone.\n\nAre you sure you want to completely delete this cloud account?`,
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete Forever",
+                      style: "destructive",
+                      onPress: async () => {
+                        try {
+                          // Switch to this profile and delete account
+                          const originalActiveProfile =
+                            await StorageService.getInstance().getActiveProfile();
+                          await StorageService.getInstance().setActiveProfile(
+                            profile.profileId
+                          );
+
+                          const cloudSync = CloudSyncService.getInstance();
+                          const result = await cloudSync.deleteCloudAccount();
+
+                          // Restore original active profile
+                          if (originalActiveProfile) {
+                            await StorageService.getInstance().setActiveProfile(
+                              originalActiveProfile.id
+                            );
+                          }
+
+                          if (result.success) {
+                            // FIXED: Force refresh profiles to update local state after cloud deletion
+                            await refreshProfiles();
+                            await loadCloudAccountsCount();
+                            Alert.alert(
+                              "✅ Account Deleted & Unlinked",
+                              `The cloud account for profile ${profile.emoji} ${profile.name} has been permanently deleted from our servers and automatically unlinked from this device.`,
+                              [{ text: "OK" }]
+                            );
+                          } else {
+                            Alert.alert(
+                              "Error",
+                              result.error ||
+                                "Failed to delete cloud account. Please try again.",
+                              [{ text: "OK" }]
+                            );
+                          }
+                        } catch (error) {
+                          console.error("Error deleting cloud account:", error);
+                          Alert.alert(
+                            "Error",
+                            "Failed to delete cloud account. Please try again.",
+                            [{ text: "OK" }]
+                          );
+                        }
+                      },
+                    },
+                  ]
+                );
+              },
+            },
+            { text: "Cancel", style: "cancel" },
+          ]
+        );
+      } else {
+        // Multiple profiles - show selection
+        const profileChoices = deviceAccounts.map((profile, index) => ({
+          text: `${profile.emoji} ${profile.name} (${profile.accounts.length} linked)`,
+          onPress: () => handleUnlinkAccount([profile]),
+        }));
+
+        Alert.alert(
+          "Select Profile",
+          "Choose which profile to manage cloud accounts for:",
+          [...profileChoices, { text: "Cancel", style: "cancel" }]
+        );
+      }
+    } catch (error) {
+      console.error("Error in unlink handler:", error);
+      Alert.alert("Error", "Failed to process unlink request.", [
+        { text: "OK" },
+      ]);
+    }
   };
 
   const handleExportProfileData = async () => {
@@ -458,7 +716,7 @@ const SettingsScreen: React.FC = () => {
 
           {/* Data Management */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Data Management</Text>
+            <Text style={styles.sectionTitle}>📈Data Management</Text>
             <View style={styles.dataCard}>
               <TouchableOpacity
                 style={styles.dataAction}
@@ -506,6 +764,68 @@ const SettingsScreen: React.FC = () => {
             </View>
           </View>
 
+          {/* App Usage Statistics */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📊 App Usage Statistics</Text>
+            <TouchableOpacity
+              style={styles.statsCard}
+              onPress={loadCloudAccountsCount}
+              activeOpacity={0.7}
+            >
+              <View style={styles.statsHeader}>
+                <Ionicons name="globe-outline" size={28} color="#4CAF50" />
+                <View style={styles.statsHeaderText}>
+                  <Text style={styles.statsTitle}>
+                    People Using CrampPanchayat
+                  </Text>
+                  <Text style={styles.statsSubtitle}>
+                    Live cloud sync users
+                  </Text>
+                </View>
+                {statsLoading && (
+                  <Ionicons
+                    name="refresh"
+                    size={20}
+                    color="#4CAF50"
+                    style={styles.refreshIcon}
+                  />
+                )}
+              </View>
+
+              <View style={styles.statsContent}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>
+                    {statsLoading ? "..." : cloudAccountsCount}
+                  </Text>
+                  <Text style={styles.statsDataLabel}>Cloud Sync Profiles</Text>
+                  <Text style={styles.statDescription}>
+                    Active users with cloud backup
+                  </Text>
+                </View>
+
+                <View style={styles.statDivider} />
+
+                <View style={styles.statsNote}>
+                  <Ionicons
+                    name="information-circle-outline"
+                    size={16}
+                    color="#666"
+                  />
+                  <Text style={styles.statsNoteText}>
+                    Offline users not counted - actual usage likely much higher!
+                    🌟
+                  </Text>
+                </View>
+
+                <View style={styles.statsRefreshHint}>
+                  <Text style={styles.refreshHintText}>
+                    Tap to refresh • Last updated now
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* Quick Actions */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -532,6 +852,21 @@ const SettingsScreen: React.FC = () => {
               >
                 <Ionicons name="settings-outline" size={24} color="#E91E63" />
                 <Text style={styles.quickActionText}>Period Setup</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickAction}
+                onPress={handleManageCloudAccounts}
+              >
+                <Ionicons name="cloud-outline" size={24} color="#E91E63" />
+                <Text style={styles.quickActionText}>Cloud Management</Text>
+                {cloudAccountsCount > 0 && (
+                  <View style={styles.cloudBadge}>
+                    <Text style={styles.cloudBadgeText}>
+                      {cloudAccountsCount}
+                    </Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -744,6 +1079,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F9FA",
     borderRadius: 8,
     marginBottom: 8,
+    position: "relative",
   },
   quickActionText: {
     fontSize: 12,
@@ -799,6 +1135,115 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#E91E63",
     fontWeight: "600",
+    fontStyle: "italic",
+  },
+  cloudBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#E91E63",
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cloudBadgeText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  // App Usage Statistics Styles
+  statsCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 15,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#E8F5E8",
+    shadowColor: "#4CAF50",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  statsHeaderText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 2,
+  },
+  statsSubtitle: {
+    fontSize: 14,
+    color: "#4CAF50",
+    fontWeight: "600",
+  },
+  statsContent: {
+    backgroundColor: "#F8FFF8",
+    borderRadius: 12,
+    padding: 16,
+  },
+  statItem: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  statNumber: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#4CAF50",
+    marginBottom: 4,
+  },
+  statsDataLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 2,
+  },
+  statDescription: {
+    fontSize: 12,
+    color: "#666",
+    textAlign: "center",
+  },
+  statDivider: {
+    height: 1,
+    backgroundColor: "#E0F2E0",
+    marginVertical: 12,
+  },
+  statsNote: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 8,
+  },
+  statsNoteText: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 6,
+    textAlign: "center",
+    fontStyle: "italic",
+    flex: 1,
+  },
+  refreshIcon: {
+    marginLeft: 8,
+  },
+  statsRefreshHint: {
+    alignItems: "center",
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#E0F2E0",
+  },
+  refreshHintText: {
+    fontSize: 10,
+    color: "#999",
     fontStyle: "italic",
   },
 });

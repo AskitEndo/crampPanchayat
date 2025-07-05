@@ -9,6 +9,7 @@ interface UseProfilesState {
   profiles: Profile[];
   activeProfile: Profile | null;
   loading: boolean;
+  switching: boolean; // New state for profile switching
   error: string | null;
 }
 
@@ -34,6 +35,7 @@ export function useProfiles(): UseProfilesReturn {
     profiles: [],
     activeProfile: null,
     loading: true,
+    switching: false,
     error: null,
   });
 
@@ -82,12 +84,12 @@ export function useProfiles(): UseProfilesReturn {
   }, [updateState]);
 
   /**
-   * Create a new profile with comprehensive validation
+   * Create a new profile with comprehensive validation and auto-switching
    */
   const createProfile = useCallback(
     async (emoji: EmojiType, name?: string): Promise<Profile> => {
       try {
-        updateState({ error: null });
+        updateState({ error: null, switching: true });
 
         // Check if emoji is already taken
         if (state.profiles.some((p) => p.emoji === emoji)) {
@@ -96,19 +98,44 @@ export function useProfiles(): UseProfilesReturn {
           );
         }
 
+        console.log(`🆕 Creating new profile: ${emoji} ${name || "(unnamed)"}`);
+
+        // Auto sign out from cloud when creating new profile - ensures profile independence
+        try {
+          const { CloudSyncService } = await import("../services/cloudSync");
+          const cloudSync = CloudSyncService.getInstance();
+          console.log(
+            "🔐 Auto-signing out from cloud for profile independence..."
+          );
+          await cloudSync.handleProfileSwitch();
+          console.log(
+            "✅ Auto-signed out from cloud due to new profile creation"
+          );
+        } catch (cloudError) {
+          console.warn("⚠️ Could not auto-signout from cloud:", cloudError);
+          // Continue with profile creation even if cloud signout fails
+        }
+
         const storage = StorageService.getInstance();
-        const newProfile = await storage.createProfile(emoji, name);
+        // Create profile and automatically set it as active
+        const newProfile = await storage.createProfile(emoji, name, true);
 
         // Update local state
         const updatedProfiles = [...state.profiles, newProfile];
-        updateState({ profiles: updatedProfiles });
+        updateState({
+          profiles: updatedProfiles,
+          activeProfile: newProfile, // Auto-switch to new profile
+          switching: false,
+        });
 
-        console.log(`Created profile: ${emoji} ${name || "(unnamed)"}`);
+        console.log(
+          `✅ Created and switched to profile: ${emoji} ${name || "(unnamed)"}`
+        );
         return newProfile;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Failed to create profile";
-        updateState({ error: errorMessage });
+        updateState({ error: errorMessage, switching: false });
         throw error;
       }
     },
@@ -116,12 +143,12 @@ export function useProfiles(): UseProfilesReturn {
   );
 
   /**
-   * Select and activate a profile
+   * Select and activate a profile with enhanced loading states
    */
   const selectProfile = useCallback(
     async (profileId: string): Promise<void> => {
       try {
-        updateState({ error: null });
+        updateState({ error: null, switching: true });
 
         // Find the profile in our current state
         const profile = state.profiles.find((p) => p.id === profileId);
@@ -129,19 +156,39 @@ export function useProfiles(): UseProfilesReturn {
           throw new Error("Profile not found");
         }
 
+        console.log(
+          `🔄 Switching to profile: ${profile.emoji} ${
+            profile.name || "(unnamed)"
+          }`
+        );
+
+        // Auto sign out from cloud when switching profiles - ensures profile independence
+        try {
+          const { CloudSyncService } = await import("../services/cloudSync");
+          const cloudSync = CloudSyncService.getInstance();
+          console.log(
+            "🔐 Auto-signing out from cloud for profile independence..."
+          );
+          await cloudSync.handleProfileSwitch();
+          console.log("✅ Auto-signed out from cloud due to profile switch");
+        } catch (cloudError) {
+          console.warn("⚠️ Could not auto-signout from cloud:", cloudError);
+          // Continue with profile switch even if cloud signout fails
+        }
+
         // Set as active in storage
         await storage.setActiveProfile(profileId);
 
         // Update local state
-        updateState({ activeProfile: profile });
+        updateState({ activeProfile: profile, switching: false });
 
         console.log(
-          `Selected profile: ${profile.emoji} ${profile.name || "(unnamed)"}`
+          `✅ Selected profile: ${profile.emoji} ${profile.name || "(unnamed)"}`
         );
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Failed to select profile";
-        updateState({ error: errorMessage });
+        updateState({ error: errorMessage, switching: false });
         throw error;
       }
     },
@@ -278,6 +325,7 @@ export function useProfiles(): UseProfilesReturn {
     profiles: state.profiles,
     activeProfile: state.activeProfile,
     loading: state.loading,
+    switching: state.switching,
     error: state.error,
 
     // Actions

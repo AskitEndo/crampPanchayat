@@ -77,14 +77,12 @@ const OnboardingScreen: React.FC = () => {
 
       const storage = StorageService.getInstance();
 
-      // Create the profile
+      // Create the profile and set as active (auto-switch)
       const newProfile = await storage.createProfile(
         selectedEmoji,
-        profileName.trim() || undefined
+        profileName.trim() || undefined,
+        true // Auto-set as active
       );
-
-      // Set it as active
-      await storage.setActiveProfile(newProfile.id);
 
       // Mark app as launched
       await storage.markFirstLaunchComplete();
@@ -97,8 +95,11 @@ const OnboardingScreen: React.FC = () => {
           {
             text: "Continue",
             onPress: async () => {
-              // Navigate to main app first
-              navigation.navigate("Main");
+              // Navigate to main app first - this ensures the new profile is active
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "Main" }],
+              });
 
               // Show donation prompt after navigation (for first profile)
               setTimeout(async () => {

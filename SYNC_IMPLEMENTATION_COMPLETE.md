@@ -19,6 +19,10 @@ The CrampPanchayat cloud sync system is now **100% error-free** and production-r
 - ✅ Robust import/export methods with data integrity checks
 - ✅ Import **always overwrites** local data completely
 - ✅ Export **always overwrites** cloud data completely
+- ✅ **Smart Sync**: Uploads local data if cloud is empty, imports if cloud has data
+- ✅ **Profile-Independent Sync**: Each profile has separate cloud sync state
+- ✅ **Auto-Signout on Profile Switch**: Switching profiles automatically signs out from cloud
+- ✅ **Auto-Switch on Profile Creation**: Creating new profile automatically switches to it
 - ✅ Network connectivity checks
 - ✅ Data sanitization and validation
 
@@ -131,9 +135,12 @@ CrampPanchayat/
 ### For Users
 
 1. **Create Account**: Username + password (no email required)
-2. **Export**: Upload current profile data to cloud (overwrites cloud)
-3. **Import**: Download cloud data to profile (overwrites local)
-4. **Multi-Device**: Same cloud account works across devices
+2. **Smart Sync**:
+   - If cloud is empty → uploads your local data to cloud
+   - If cloud has data → downloads cloud data to local (overwrites local)
+3. **Profile Independence**: Each emoji profile has separate cloud sync state
+4. **Auto-Switch**: Creating new profile automatically switches to it
+5. **Multi-Device**: Same cloud account works across devices
 
 ## 🔍 Error Handling
 
@@ -164,11 +171,14 @@ CrampPanchayat/
 ## ✨ Key Benefits
 
 1. **Bulletproof Import/Export**: Data validation prevents corruption
-2. **Clear User Feedback**: Detailed success/error messages
-3. **Privacy-First**: Username-based auth, no personal data required
-4. **Offline-First**: Works seamlessly without internet
-5. **Multi-Device Support**: Sync same data across devices
-6. **Production Ready**: Comprehensive error handling and logging
+2. **Smart Sync Logic**: Handles empty cloud intelligently (upload vs download)
+3. **Profile Independence**: Each emoji profile has separate cloud sync state
+4. **Auto Profile Switching**: New profiles auto-activate, switching auto-signs out
+5. **Clear User Feedback**: Detailed success/error messages
+6. **Privacy-First**: Username-based auth, no personal data required
+7. **Offline-First**: Works seamlessly without internet
+8. **Multi-Device Support**: Sync same data across devices
+9. **Production Ready**: Comprehensive error handling and logging
 
 ## 🎉 Final Result
 
