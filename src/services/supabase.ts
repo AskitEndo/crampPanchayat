@@ -100,40 +100,32 @@ export class SupabaseService {
 
       console.log(`Checking username availability for: ${username}`);
 
-      // FIXED: Simplified approach that doesn't create test users
-      // Since we can't easily query auth.users directly, we'll use a different strategy
-
-      // Method 1: Check if any user_data exists with this pattern
+      // Convert username to the dummy email format used in auth
       const dummyEmail = `${username}@cramppanchayat.local`;
 
-      // Try a lightweight check first - see if we can find any existing users
-      const { data: existingUsers, error } = await client
-        .from("user_data")
-        .select("user_id")
-        .limit(10);
+      // Use Supabase RPC function to check if username exists
+      // This is safer than creating temporary users
+      const { data, error } = await client.rpc("check_username_exists", {
+        email_to_check: dummyEmail,
+      });
 
       if (error) {
-        console.warn("Error checking existing users:", error);
-        // If error, be optimistic and allow the username
+        console.warn("Error checking username via RPC:", error);
+        // If RPC fails, fall back to optimistic approach
         return true;
       }
 
-      // If no users exist at all, username is definitely available
-      if (!existingUsers || existingUsers.length === 0) {
-        console.log(`Username ${username} is available (no existing users)`);
-        return true;
-      }
-
-      // For existing systems, we'll be optimistic about username availability
-      // The real validation will happen during account creation
-      // This prevents the "false positive" issue you were experiencing
+      // RPC returns true if username exists, false if available
+      const usernameExists = data === true;
       console.log(
-        `Username ${username} appears to be available (optimistic check)`
+        `Username ${username} availability check: ${
+          usernameExists ? "NOT available" : "available"
+        }`
       );
-      return true;
+      return !usernameExists;
     } catch (error) {
       console.error("Error checking username availability:", error);
-      // On any error, be optimistic
+      // On any error, be optimistic to not block user
       return true;
     }
   }

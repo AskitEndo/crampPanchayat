@@ -214,7 +214,24 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =================================================================
--- PART 7: USER DELETION FUNCTIONS (CRITICAL FOR USER MANAGEMENT)
+-- PART 7: USERNAME AVAILABILITY CHECK FUNCTION
+-- =================================================================
+
+-- Function to check if username (email) already exists in auth.users
+-- This is used by the app to provide real-time username availability feedback
+CREATE OR REPLACE FUNCTION check_username_exists(email_to_check text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Check if email exists in auth.users table
+  RETURN EXISTS(SELECT 1 FROM auth.users WHERE email = email_to_check);
+END;
+$$;
+
+-- =================================================================
+-- PART 8: USER DELETION FUNCTIONS (CRITICAL FOR USER MANAGEMENT)
 -- =================================================================
 
 -- Basic user deletion function with proper type handling
@@ -357,7 +374,7 @@ END;
 $$;
 
 -- =================================================================
--- PART 8: CREATE TRIGGERS
+-- PART 9: CREATE TRIGGERS
 -- =================================================================
 
 -- Trigger to automatically update updated_at on user_data changes
@@ -379,15 +396,18 @@ CREATE TRIGGER cleanup_auth_trigger
   EXECUTE FUNCTION cleanup_auth_on_user_data_delete();
 
 -- =================================================================
--- PART 9: GRANT PERMISSIONS
+-- PART 10: GRANT PERMISSIONS
 -- =================================================================
 
 -- Grant execute permission to authenticated users for deletion functions
 GRANT EXECUTE ON FUNCTION delete_user(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION delete_user_complete(uuid) TO authenticated;
 
+-- Grant execute permission for username check function (allow anonymous calls for registration)
+GRANT EXECUTE ON FUNCTION check_username_exists(text) TO anon, authenticated;
+
 -- =================================================================
--- PART 10: VERIFICATION QUERIES (UNCOMMENT TO TEST)
+-- PART 11: VERIFICATION QUERIES (UNCOMMENT TO TEST)
 -- =================================================================
 
 -- Verify schema is created correctly

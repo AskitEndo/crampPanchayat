@@ -35,8 +35,9 @@ const SettingsScreen: React.FC = () => {
   const [profileStats, setProfileStats] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [cloudAccountsCount, setCloudAccountsCount] = useState(0);
-  const [cloudAvailable, setCloudAvailable] = useState(true);
-  const [statsLoading, setStatsLoading] = useState(false);
+  const [cloudAvailable, setCloudAvailable] = useState(false); // Start as false
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(true); // Start as loading
 
   // Define loadCloudAccountsCount function first
   const loadCloudAccountsCount = useCallback(async () => {
@@ -45,8 +46,6 @@ const SettingsScreen: React.FC = () => {
       // Add haptic feedback for user interaction
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // UNIVERSAL STATISTICS: Always show total cloud users regardless of sign-in status
-      // This gives users an idea of how many people are using CrampPanchayat with cloud sync
       const { SupabaseService } = await import("../services/supabase");
 
       // Check if Supabase is configured first
@@ -54,9 +53,26 @@ const SettingsScreen: React.FC = () => {
         console.log("Supabase not configured - cloud statistics unavailable");
         setCloudAccountsCount(0);
         setCloudAvailable(false);
+        setIsSignedIn(false);
         return;
       }
 
+      // Check if user is signed in
+      const currentUser = await SupabaseService.getCurrentUser();
+      const userIsSignedIn = currentUser !== null;
+      setIsSignedIn(userIsSignedIn);
+
+      if (!userIsSignedIn) {
+        // User not signed in - don't show stats, show sign-in message
+        console.log(
+          "User not signed in - showing sign-in message for cloud stats"
+        );
+        setCloudAccountsCount(0);
+        setCloudAvailable(false); // Keep cloud unavailable when not signed in
+        return;
+      }
+
+      // User is signed in - fetch and show cloud statistics
       const cloudStats = await SupabaseService.getCloudUserStatistics();
 
       if (cloudStats.error) {
@@ -75,9 +91,10 @@ const SettingsScreen: React.FC = () => {
       }
     } catch (error) {
       console.error("Failed to load universal cloud statistics:", error);
-      // On any error, default to 0 but don't break the UI
+      // On any error, default to safe state
       setCloudAccountsCount(0);
       setCloudAvailable(false);
+      // Don't change isSignedIn state on error to preserve user session state
     } finally {
       setStatsLoading(false);
     }
@@ -825,13 +842,19 @@ const SettingsScreen: React.FC = () => {
                   <Text style={styles.statNumber}>
                     {statsLoading
                       ? "..."
+                      : !isSignedIn
+                      ? "Sign In"
                       : cloudAvailable
-                      ? cloudAccountsCount
+                      ? cloudAccountsCount.toString()
                       : "N/A"}
                   </Text>
                   <Text style={styles.statsDataLabel}>Total Cloud Users</Text>
                   <Text style={styles.statDescription}>
-                    {cloudAvailable
+                    {statsLoading
+                      ? "Loading statistics..."
+                      : !isSignedIn
+                      ? "Sign in to see total cloud users worldwide"
+                      : cloudAvailable
                       ? "People using CrampPanchayat with cloud sync worldwide"
                       : "Cloud statistics unavailable (offline mode)"}
                   </Text>
