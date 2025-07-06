@@ -7,10 +7,11 @@ import { EmojiType, SymptomType, StorageKeys } from "../types";
 export const APP_CONFIG = {
   NAME: "CrampPanchayat",
   VERSION: "1.0.0",
-  PRIVACY_POLICY_URL: "https://cramppanchayat.com/privacy",
-  TERMS_URL: "https://cramppanchayat.com/terms",
+  PRIVACY_POLICY_URL:
+    "https://cramppanchayat.com/privacyhttps://github.com/AskitEndo/crampPanchayat",
+  TERMS_URL: "https://github.com/AskitEndo/crampPanchayat",
   SUPPORT_EMAIL: "support@cramppanchayat.com",
-  GITHUB_REPO: "https://github.com/cramppanchayat/app",
+  GITHUB_REPO: "https://github.com/AskitEndo/crampPanchayat",
 } as const;
 
 // Emoji Profiles - Culturally diverse and inclusive
