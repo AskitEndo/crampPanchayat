@@ -2,11 +2,11 @@
 
 **CrampPanchayat - Privacy-First Period Tracking**
 
-_Last Updated: January 15, 2024_
+_Last Updated: July 6, 2025_
 
 ## 🌟 Our Privacy Commitment
 
-CrampPanchayat is built with privacy as the foundation. We believe menstrual health data is deeply personal, and we've designed our app to protect your privacy while providing useful tracking features.
+CrampPanchayat is built with privacy as the foundation. We believe menstrual health data is deeply personal, and we've designed our app to protect your privacy while providing useful tracking features. **This app is production-ready with comprehensive privacy protections and real-time security features.**
 
 ## 🎭 Anonymous by Design
 
@@ -32,10 +32,13 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 
 ### Optional Cloud Sync
 
-- **Your Choice**: Cloud sync is entirely optional
-- **Anonymous Only**: If enabled, only anonymous data is synced
-- **Secure**: Uses Supabase with Row Level Security (RLS) policies
+- **Your Choice**: Cloud sync is entirely optional and clearly marked
+- **Anonymous Only**: If enabled, only anonymous data is synced using username-based accounts
+- **Real-time Privacy**: Username availability checked without data exposure
+- **Secure**: Uses Supabase with advanced Row Level Security (RLS) policies
 - **Encrypted**: Data is encrypted in transit and at rest
+- **Complete Deletion**: Robust user deletion removes all traces from cloud systems
+- **Live Statistics**: Community insights shown only when signed in, preserving anonymity
 
 ## 📊 What Data We Collect
 
@@ -51,10 +54,12 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 - App version and device type (for compatibility)
 - Crash reports (anonymous, no personal data)
 - Feature usage statistics (anonymous, aggregated)
+- Real-time username availability queries (no personal data stored)
+- Cloud sync status and statistics (anonymous aggregated counts only)
 
 ### What We DON'T Collect
 
-- ❌ Real names or email addresses
+- ❌ Real names or email addresses (cloud accounts use dummy emails like `username@cramppanchayat.local`)
 - ❌ Phone numbers or contact information
 - ❌ Location data or GPS coordinates
 - ❌ Device identifiers or advertising IDs
@@ -62,15 +67,19 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 - ❌ Photos or camera access
 - ❌ Microphone or audio data
 - ❌ Any personally identifiable information
+- ❌ Username availability search history
+- ❌ Individual cloud usage patterns
 
 ## 🔧 Data Usage
 
 ### How We Use Your Data
 
-- **Health Tracking**: Calculate cycle predictions and statistics
-- **App Improvement**: Anonymous usage data to improve features
+- **Health Tracking**: Calculate cycle predictions and statistics using unified tracking algorithms
+- **App Improvement**: Anonymous usage data to improve features and performance
 - **Bug Fixes**: Crash reports help us fix issues (anonymous only)
 - **Support**: Help with app issues (only if you contact us)
+- **Real-time Features**: Username availability checking and cloud statistics (anonymous)
+- **Security**: Advanced database functions ensure data integrity and privacy
 
 ### How We DON'T Use Your Data
 
@@ -96,6 +105,8 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 - No individual tracking or profiling
 - Used solely for app improvement
 - Can be disabled in app settings
+- Real-time cloud user statistics (aggregated counts only)
+- Username availability analytics (no usernames stored, only success/failure rates)
 
 ## 🛡️ Security Measures
 
@@ -104,7 +115,10 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 - **Encryption**: All data encrypted in transit and at rest
 - **Secure Storage**: Industry-standard secure storage practices
 - **Regular Updates**: Security patches and updates
-- **Access Controls**: Strict access controls for any cloud data
+- **Access Controls**: Advanced Row Level Security (RLS) policies for cloud data
+- **Real-time Security**: Secure username availability checking without data exposure
+- **Database Functions**: Advanced SQL functions with proper error handling and type safety
+- **Automatic Cleanup**: Triggers ensure complete data removal when accounts are deleted
 
 ### Privacy by Design
 
@@ -112,6 +126,8 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 - **Anonymous First**: No personal identifiers in our systems
 - **User Control**: You control all data sharing settings
 - **Transparent**: Open source code for transparency
+- **Real-time Privacy**: Username checking happens without storing personal data
+- **Secure Architecture**: Production-tested privacy and security measures
 
 ## 🌍 International Privacy Laws
 
@@ -150,8 +166,10 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 ### Cloud Data (if enabled)
 
 - **Sync Duration**: Data synced only while feature is enabled
-- **Account Deletion**: Complete data removal upon request
+- **Account Deletion**: Complete data removal with robust cleanup functions
 - **Retention Limit**: Anonymous data retained for service improvement only
+- **Advanced Deletion**: SQL functions ensure complete removal from all database tables
+- **No Orphaned Data**: Automatic triggers clean up all associated authentication data
 
 ## 🔄 Data Export and Deletion
 
@@ -168,6 +186,8 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 2. Go to Settings → Data Management
 3. Choose "Export Data" or "Delete All Data"
 4. Follow the prompts for immediate action
+5. **Cloud Account Deletion**: Complete removal from all cloud systems with verification
+6. **Real-time Confirmation**: Immediate feedback on deletion success
 
 ## 📞 Contact Information
 
@@ -194,9 +214,10 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 
 ### Current Version
 
-- **Version**: 1.0.0
-- **Last Updated**: January 15, 2024
-- **Next Review**: July 15, 2024
+- **Version**: 1.0.5
+- **Last Updated**: July 6, 2025
+- **Next Review**: January 6, 2026
+- **Recent Updates**: Enhanced cloud sync privacy, real-time username checking, robust user deletion
 
 ## 🌈 Cultural Sensitivity
 
@@ -222,6 +243,36 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 - **No Tracking**: Donation preferences don't affect privacy settings
 - **Optional**: Never required for app functionality
 
+## 🔒 Recent Privacy Enhancements (July 2025)
+
+### Real-time Username Privacy
+
+- **Secure Checking**: Username availability verified through secure database functions
+- **No Data Storage**: Username queries don't store or log personal information
+- **Anonymous Validation**: Uses dummy email format (`username@cramppanchayat.local`) for security
+- **Real-time Feedback**: Instant availability checking without privacy compromise
+
+### Enhanced Cloud Security
+
+- **Advanced RLS**: Upgraded Row Level Security policies for comprehensive data protection
+- **Robust Deletion**: Complete user account removal with multi-table cleanup
+- **Type Safety**: Enhanced database functions handle all data types securely
+- **Error Handling**: Comprehensive error management with privacy protection
+
+### Improved Statistics Privacy
+
+- **Sign-in State Awareness**: Statistics shown only when appropriate
+- **Anonymous Aggregation**: Cloud user counts aggregated anonymously
+- **No Individual Tracking**: Community insights without personal data exposure
+- **Clear Messaging**: Transparent about what data is available and when
+
+### Database Privacy Features
+
+- **Automatic Cleanup**: Database triggers ensure complete data removal
+- **Data Validation**: Automatic validation maintains data integrity without exposure
+- **Timestamp Management**: Last updated tracking without personal identification
+- **Secure Functions**: All database operations designed with privacy-first principles
+
 ---
 
 ## 📋 Summary
@@ -235,9 +286,13 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 ✅ **Open source transparency**  
 ✅ **GDPR and global privacy law compliant**  
 ✅ **Cultural sensitivity and inclusivity**  
-✅ **Easy data export and deletion**
+✅ **Easy data export and deletion**  
+✅ **Real-time username privacy protection**  
+✅ **Advanced database security with RLS**  
+✅ **Robust user deletion with complete cleanup**  
+✅ **Production-tested privacy measures**
 
-Your menstrual health data belongs to you, and we're committed to keeping it that way.
+Your menstrual health data belongs to you, and we're committed to keeping it that way with the latest privacy technologies and security practices.
 
 ---
 

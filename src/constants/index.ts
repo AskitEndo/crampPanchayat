@@ -8,8 +8,8 @@ export const APP_CONFIG = {
   NAME: "CrampPanchayat",
   VERSION: "1.0.0",
   PRIVACY_POLICY_URL:
-    "https://cramppanchayat.com/privacyhttps://github.com/AskitEndo/crampPanchayat",
-  TERMS_URL: "https://github.com/AskitEndo/crampPanchayat",
+    "https://github.com/AskitEndo/crampPanchayat/blob/main/PRIVACY.md",
+  TERMS_URL: "https://github.com/AskitEndo/crampPanchayat/blob/main/PRIVACY.md",
   SUPPORT_EMAIL: "support@cramppanchayat.com",
   GITHUB_REPO: "https://github.com/AskitEndo/crampPanchayat",
 } as const;
