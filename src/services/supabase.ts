@@ -347,24 +347,101 @@ export class SupabaseService {
         validNotes: cloudData.notes.filter((n) => n.id && n.date).length,
       });
 
+      // Debug: Check authentication status before upsert
+      const { data: authUser, error: authError } = await client.auth.getUser();
+      if (authError || !authUser?.user) {
+        console.error("Authentication check failed:", authError);
+        throw new AppError({
+          code: "AUTHENTICATION_ERROR",
+          message: "User not properly authenticated for data export",
+          details: authError,
+        });
+      }
+
+      console.log("Authentication verified for user:", authUser.user.id);
+
+      // Try upsert with explicit user_id matching auth user
+      const upsertData = {
+        user_id: authUser.user.id, // Use auth user ID explicitly
+        period_data: cloudData,
+      };
+
+      console.log("Attempting upsert with data:", {
+        user_id: upsertData.user_id,
+        period_data_keys: Object.keys(upsertData.period_data),
+      });
+
       // Upsert the data (insert or update)
-      const { error } = await client.from("user_data").upsert(
-        {
-          user_id: user.id,
-          period_data: cloudData,
-        },
-        {
-          onConflict: "user_id",
-        }
-      );
+      const { error } = await client.from("user_data").upsert(upsertData, {
+        onConflict: "user_id",
+      });
 
       if (error) {
         console.error("Export data error:", error);
-        throw new AppError({
-          code: "SUPABASE_EXPORT_ERROR",
-          message: "Failed to export data to cloud",
-          details: error,
-        });
+
+        // If RLS error, try alternative approach
+        if (error.code === "42501") {
+          console.log(
+            "RLS policy violation detected, trying manual insert/update..."
+          );
+
+          // Check if record exists first
+          const { data: existingData, error: selectError } = await client
+            .from("user_data")
+            .select("id")
+            .eq("user_id", authUser.user.id)
+            .single();
+
+          if (selectError && selectError.code !== "PGRST116") {
+            console.error("Error checking existing data:", selectError);
+          }
+
+          if (existingData) {
+            // Record exists, try update
+            console.log("Record exists, attempting update...");
+            const { error: updateError } = await client
+              .from("user_data")
+              .update({ period_data: cloudData })
+              .eq("user_id", authUser.user.id);
+
+            if (updateError) {
+              console.error("Update failed:", updateError);
+              throw new AppError({
+                code: "SUPABASE_UPDATE_ERROR",
+                message: "Failed to update existing data in cloud",
+                details: updateError,
+              });
+            }
+          } else {
+            // Record doesn't exist, try insert
+            console.log("Record doesn't exist, attempting insert...");
+            const { error: insertError } = await client
+              .from("user_data")
+              .insert({
+                user_id: authUser.user.id,
+                period_data: cloudData,
+              });
+
+            if (insertError) {
+              console.error("Insert failed:", insertError);
+              throw new AppError({
+                code: "SUPABASE_INSERT_ERROR",
+                message: "Failed to insert new data to cloud",
+                details: insertError,
+              });
+            }
+          }
+
+          console.log("Manual insert/update completed successfully");
+        } else {
+          throw new AppError({
+            code: "SUPABASE_EXPORT_ERROR",
+            message: "Failed to export data to cloud",
+            details: error,
+          });
+        }
+      } else {
+        console.log("Upsert completed successfully");
       }
 
       console.log("Data exported to cloud successfully with full validation");
@@ -561,21 +638,103 @@ export class SupabaseService {
 
       console.log("User data deleted successfully");
 
-      // Step 2: Sign out the user (admin delete requires special permissions)
-      // For most Supabase setups, we can't delete auth users directly
-      // So we'll sign them out which effectively "removes" them from the session
+      // Step 2: Delete the authentication user using the comprehensive function
       try {
-        const { error: signOutError } = await client.auth.signOut();
-        if (signOutError) {
-          console.warn("Error signing out user:", signOutError);
-        } else {
+        // Use the comprehensive delete function that handles everything
+        // Pass the user ID as target_user_id parameter (matching SQL function parameter name)
+        const { data, error: rpcError } = await client.rpc(
+          "delete_user_complete",
+          {
+            target_user_id: user.id,
+          }
+        );
+
+        if (rpcError) {
           console.log(
-            "User signed out successfully - account effectively deleted"
+            "Comprehensive delete function not available, trying individual methods..."
           );
+
+          // Fallback 1: Try basic delete_user RPC function
+          const { error: basicRpcError } = await client.rpc("delete_user", {
+            target_user_id: user.id,
+          });
+
+          if (basicRpcError) {
+            console.log(
+              "Basic RPC delete_user not available, trying admin API delete..."
+            );
+
+            // Fallback 2: Try using admin.deleteUser (requires service role key)
+            const { error: adminError } = await client.auth.admin.deleteUser(
+              user.id
+            );
+
+            if (adminError) {
+              console.error("Admin delete failed:", adminError);
+
+              // Fallback 3: Call a custom edge function for user deletion
+              try {
+                const { error: edgeFunctionError } =
+                  await client.functions.invoke("delete-user", {
+                    body: { userId: user.id },
+                  });
+
+                if (edgeFunctionError) {
+                  console.error(
+                    "Edge function delete failed:",
+                    edgeFunctionError
+                  );
+                  throw new Error("All deletion methods failed");
+                } else {
+                  console.log("User deleted via edge function successfully");
+                }
+              } catch (edgeError) {
+                console.error("Edge function not available:", edgeError);
+                throw new Error(
+                  "All deletion methods failed - user data deleted but auth user remains"
+                );
+              }
+            } else {
+              console.log("User deleted via admin API successfully");
+            }
+          } else {
+            console.log("User deleted via basic RPC function successfully");
+          }
+        } else {
+          console.log("User deleted via comprehensive function successfully");
+          if (data && !data.success) {
+            console.error("Deletion function returned error:", data.message);
+            throw new Error(data.message);
+          }
         }
-      } catch (signOutError) {
-        console.warn("Could not sign out user:", signOutError);
-        // This is not critical since we already deleted the data
+      } catch (deleteError) {
+        console.warn("Could not delete auth user:", deleteError);
+
+        // Final fallback: Sign out and warn user
+        try {
+          const { error: signOutError } = await client.auth.signOut();
+          if (signOutError) {
+            console.warn("Error signing out user:", signOutError);
+          } else {
+            console.log(
+              "User signed out successfully - data deleted but auth user may remain"
+            );
+          }
+
+          // Throw a specific error to inform the user
+          throw new AppError({
+            code: "PARTIAL_DELETE_SUCCESS",
+            message:
+              "Your data has been deleted successfully, but you may need to contact support to fully remove your account from our authentication system.",
+          });
+        } catch (signOutError) {
+          console.warn("Could not sign out user:", signOutError);
+          throw new AppError({
+            code: "DELETE_INCOMPLETE",
+            message:
+              "Data deletion completed but could not fully remove account. Please contact support.",
+          });
+        }
       }
 
       console.log("Account deletion completed successfully");

@@ -165,50 +165,74 @@ const HomeScreen: React.FC = () => {
       return daysDiff <= 7; // Last 7 days
     });
 
-    // Count total notes from both direct notes and notes within symptoms
-    // FIXED: More accurate counting that doesn't double-count or include empty entries
+    // FIXED: Improved deduplication logic using normalized content comparison
     let totalNotesCount = 0;
-    const seenNotes = new Set<string>(); // Track date+note combinations to avoid duplicates
+    const seenNotes = new Map<
+      string,
+      { date: string; content: string; sources: string[] }
+    >(); // Track notes with their sources
 
-    // Count direct notes (only non-empty ones)
+    // Helper function to normalize note content for comparison
+    const normalizeNote = (note: string) =>
+      note.trim().toLowerCase().replace(/\s+/g, " ");
+
+    // Helper function to add note with deduplication
+    const addNote = (date: string, content: string, source: string) => {
+      if (!content || content.trim().length === 0) return;
+
+      const normalizedContent = normalizeNote(content);
+      const dateKey = date.split("T")[0]; // Normalize date to YYYY-MM-DD format
+      const uniqueKey = `${dateKey}:${normalizedContent}`;
+
+      if (seenNotes.has(uniqueKey)) {
+        // Add source to existing note if not already included
+        const existing = seenNotes.get(uniqueKey)!;
+        if (!existing.sources.includes(source)) {
+          existing.sources.push(source);
+        }
+      } else {
+        seenNotes.set(uniqueKey, {
+          date: dateKey,
+          content: content.trim(),
+          sources: [source],
+        });
+        totalNotesCount++;
+      }
+    };
+
+    // Count direct notes (DailyNote entries)
     if (activeProfile.notes && Array.isArray(activeProfile.notes)) {
       activeProfile.notes.forEach((note) => {
-        if (note && note.note && note.note.trim().length > 0) {
-          const noteKey = `${note.date}:${note.note.trim()}`;
-          if (!seenNotes.has(noteKey)) {
-            seenNotes.add(noteKey);
-            totalNotesCount++;
-          }
+        if (note && note.note) {
+          addNote(note.date, note.note, "daily");
         }
       });
     }
 
-    // Add notes from symptoms that have meaningful notes (avoid duplicates)
+    // Add notes from symptoms (SymptomRecord.notes)
     if (activeProfile.symptoms && Array.isArray(activeProfile.symptoms)) {
       activeProfile.symptoms.forEach((symptom) => {
-        if (symptom.notes && symptom.notes.trim().length > 0) {
-          const noteKey = `${symptom.date}:${symptom.notes.trim()}`;
-          if (!seenNotes.has(noteKey)) {
-            seenNotes.add(noteKey);
-            totalNotesCount++;
-          }
+        if (symptom.notes) {
+          addNote(symptom.date, symptom.notes, "symptom");
         }
       });
     }
 
-    // Add notes from cycles (only meaningful cycle notes, avoid duplicates)
+    // Add notes from cycles (CycleRecord.notes) - check for different structure
     if (activeProfile.cycles && Array.isArray(activeProfile.cycles)) {
       activeProfile.cycles.forEach((cycle) => {
-        if (cycle.notes && typeof cycle.notes === "object") {
-          Object.entries(cycle.notes).forEach(([date, note]) => {
-            if (note && typeof note === "string" && note.trim().length > 0) {
-              const noteKey = `${date}:${note.trim()}`;
-              if (!seenNotes.has(noteKey)) {
-                seenNotes.add(noteKey);
-                totalNotesCount++;
+        if (cycle.notes) {
+          if (typeof cycle.notes === "string") {
+            // Simple string note
+            addNote(cycle.startDate, cycle.notes, "cycle");
+          } else if (typeof cycle.notes === "object") {
+            // Object with date keys
+            Object.entries(cycle.notes).forEach(([date, note]) => {
+              if (note && typeof note === "string") {
+                addNote(date, note, "cycle");
               }
-            }
-          });
+            });
+          }
         }
       });
     }
@@ -424,23 +448,55 @@ const HomeScreen: React.FC = () => {
       return;
     }
 
-    // Collect all notes from different sources with deduplication
+    // FIXED: Use the same improved deduplication logic as quickStats
     const allNotes: Array<{ date: string; note: string; source: string }> = [];
-    const seenNotes = new Set<string>(); // Track date+note combinations to avoid duplicates
+    const seenNotes = new Map<
+      string,
+      { date: string; content: string; sources: string[] }
+    >();
+
+    // Helper function to normalize note content for comparison
+    const normalizeNote = (note: string) =>
+      note.trim().toLowerCase().replace(/\s+/g, " ");
+
+    // Helper function to add note with deduplication
+    const addNote = (
+      date: string,
+      content: string,
+      source: string,
+      sourceDisplay: string
+    ) => {
+      if (!content || content.trim().length === 0) return;
+
+      const normalizedContent = normalizeNote(content);
+      const dateKey = date.split("T")[0]; // Normalize date to YYYY-MM-DD format
+      const uniqueKey = `${dateKey}:${normalizedContent}`;
+
+      if (seenNotes.has(uniqueKey)) {
+        // Add source to existing note if not already included
+        const existing = seenNotes.get(uniqueKey)!;
+        if (!existing.sources.includes(source)) {
+          existing.sources.push(source);
+        }
+      } else {
+        seenNotes.set(uniqueKey, {
+          date: dateKey,
+          content: content.trim(),
+          sources: [source],
+        });
+        allNotes.push({
+          date: dateKey,
+          note: content.trim(),
+          source: sourceDisplay,
+        });
+      }
+    };
 
     // Direct notes (DailyNote entries)
     if (activeProfile.notes && Array.isArray(activeProfile.notes)) {
       activeProfile.notes.forEach((note) => {
-        if (note && note.note && note.note.trim().length > 0) {
-          const noteKey = `${note.date}:${note.note.trim()}`;
-          if (!seenNotes.has(noteKey)) {
-            seenNotes.add(noteKey);
-            allNotes.push({
-              date: note.date,
-              note: note.note,
-              source: "Daily Note",
-            });
-          }
+        if (note && note.note) {
+          addNote(note.date, note.note, "daily", "Daily Note");
         }
       });
     }
@@ -448,37 +504,27 @@ const HomeScreen: React.FC = () => {
     // Notes from symptoms (SymptomRecord.notes)
     if (activeProfile.symptoms && Array.isArray(activeProfile.symptoms)) {
       activeProfile.symptoms.forEach((symptom) => {
-        if (symptom.notes && symptom.notes.trim().length > 0) {
-          const noteKey = `${symptom.date}:${symptom.notes.trim()}`;
-          if (!seenNotes.has(noteKey)) {
-            seenNotes.add(noteKey);
-            allNotes.push({
-              date: symptom.date,
-              note: symptom.notes,
-              source: "Symptom Note",
-            });
-          }
+        if (symptom.notes) {
+          addNote(symptom.date, symptom.notes, "symptom", "Symptom Note");
         }
       });
     }
 
-    // Notes from cycles (CycleRecord.notes) - only if not already added from symptoms
+    // Notes from cycles (CycleRecord.notes)
     if (activeProfile.cycles && Array.isArray(activeProfile.cycles)) {
       activeProfile.cycles.forEach((cycle) => {
-        if (cycle.notes && typeof cycle.notes === "object") {
-          Object.entries(cycle.notes).forEach(([date, note]) => {
-            if (note && typeof note === "string" && note.trim().length > 0) {
-              const noteKey = `${date}:${note.trim()}`;
-              if (!seenNotes.has(noteKey)) {
-                seenNotes.add(noteKey);
-                allNotes.push({
-                  date,
-                  note,
-                  source: "Cycle Note",
-                });
+        if (cycle.notes) {
+          if (typeof cycle.notes === "string") {
+            // Simple string note
+            addNote(cycle.startDate, cycle.notes, "cycle", "Cycle Note");
+          } else if (typeof cycle.notes === "object") {
+            // Object with date keys
+            Object.entries(cycle.notes).forEach(([date, note]) => {
+              if (note && typeof note === "string") {
+                addNote(date, note, "cycle", "Cycle Note");
               }
-            }
-          });
+            });
+          }
         }
       });
     }

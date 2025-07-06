@@ -35,6 +35,7 @@ const SettingsScreen: React.FC = () => {
   const [profileStats, setProfileStats] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [cloudAccountsCount, setCloudAccountsCount] = useState(0);
+  const [cloudAvailable, setCloudAvailable] = useState(true);
   const [statsLoading, setStatsLoading] = useState(false);
 
   // Define loadCloudAccountsCount function first
@@ -47,6 +48,15 @@ const SettingsScreen: React.FC = () => {
       // UNIVERSAL STATISTICS: Always show total cloud users regardless of sign-in status
       // This gives users an idea of how many people are using CrampPanchayat with cloud sync
       const { SupabaseService } = await import("../services/supabase");
+
+      // Check if Supabase is configured first
+      if (!SupabaseService.isConfigured()) {
+        console.log("Supabase not configured - cloud statistics unavailable");
+        setCloudAccountsCount(0);
+        setCloudAvailable(false);
+        return;
+      }
+
       const cloudStats = await SupabaseService.getCloudUserStatistics();
 
       if (cloudStats.error) {
@@ -54,17 +64,20 @@ const SettingsScreen: React.FC = () => {
           "Error getting universal cloud statistics:",
           cloudStats.error
         );
-        // Even on error, try to show some helpful info
+        // Show a user-friendly message instead of breaking
         setCloudAccountsCount(0);
+        setCloudAvailable(false);
       } else {
         // Show total unique cloud users (universal count)
         setCloudAccountsCount(cloudStats.totalUsers);
+        setCloudAvailable(true);
         console.log("Universal cloud statistics loaded:", cloudStats);
       }
     } catch (error) {
       console.error("Failed to load universal cloud statistics:", error);
       // On any error, default to 0 but don't break the UI
       setCloudAccountsCount(0);
+      setCloudAvailable(false);
     } finally {
       setStatsLoading(false);
     }
@@ -810,11 +823,17 @@ const SettingsScreen: React.FC = () => {
               <View style={styles.statsContent}>
                 <View style={styles.statItem}>
                   <Text style={styles.statNumber}>
-                    {statsLoading ? "..." : cloudAccountsCount}
+                    {statsLoading
+                      ? "..."
+                      : cloudAvailable
+                      ? cloudAccountsCount
+                      : "N/A"}
                   </Text>
                   <Text style={styles.statsDataLabel}>Total Cloud Users</Text>
                   <Text style={styles.statDescription}>
-                    People using CrampPanchayat with cloud sync worldwide
+                    {cloudAvailable
+                      ? "People using CrampPanchayat with cloud sync worldwide"
+                      : "Cloud statistics unavailable (offline mode)"}
                   </Text>
                 </View>
 
@@ -827,9 +846,9 @@ const SettingsScreen: React.FC = () => {
                     color="#666"
                   />
                   <Text style={styles.statsNoteText}>
-                    This shows total users worldwide using cloud sync.
-                    Offline-only users not counted - actual CrampPanchayat usage
-                    is much higher! �✨
+                    {cloudAvailable
+                      ? "This shows total users worldwide using cloud sync. Offline-only users not counted - actual CrampPanchayat usage is much higher! 😤✨"
+                      : "Cloud features are currently unavailable. The app works perfectly offline! �✨"}
                   </Text>
                 </View>
 
