@@ -30,6 +30,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
+import { useAdvancedPeriodTracking } from "../hooks/useAdvancedPeriodTracking";
 import { format, differenceInDays, addDays, isToday } from "date-fns";
 import { MOTIVATIONAL_QUOTES } from "../constants";
 import { donationPromptManager } from "../utils/donationPrompt";
@@ -100,41 +101,59 @@ const HomeScreen: React.FC = () => {
     clearError,
   } = useProfiles();
 
+  // Enhanced period tracking with robust algorithms
+  const periodTracking = useAdvancedPeriodTracking(activeProfile);
+
   const [refreshing, setRefreshing] = useState(false);
   const [dailyQuote, setDailyQuote] = useState<string>("");
   const [switchingProfile, setSwitchingProfile] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // Memoized cycle calculations for better performance
+  // Enhanced cycle calculations using the new period tracking service
   const cycleInfo = useMemo(() => {
     if (!activeProfile || activeProfile.cycles.length === 0) {
       return null;
     }
 
-    const lastCycle = activeProfile.cycles[activeProfile.cycles.length - 1];
-    const cycleStartDate = new Date(lastCycle.startDate);
-    const today = new Date();
-    const daysSinceStart = differenceInDays(today, cycleStartDate);
-    const averagePeriodLength =
-      activeProfile.settings?.averagePeriodLength || 5;
-    const averageCycleLength = activeProfile.settings?.averageCycleLength || 28;
-
     return {
-      startDate: cycleStartDate,
-      daysSinceStart,
-      isInPeriod: daysSinceStart >= 0 && daysSinceStart < averagePeriodLength,
-      predictedNextPeriod: addDays(cycleStartDate, averageCycleLength),
-      cycleDay: daysSinceStart + 1,
-      averageCycleLength,
-      averagePeriodLength,
-      daysUntilNext: Math.max(0, averageCycleLength - daysSinceStart),
+      // Current status - use the direct properties from the hook
+      isInPeriod: periodTracking.isOnPeriod,
+      periodDay: periodTracking.periodDay,
+      cycleDay: periodTracking.dayInCycle,
+      currentPhase: periodTracking.currentPhase,
+      phaseDescription: periodTracking.phaseDescription,
+
+      // Cycle metrics - use the direct properties from the hook
+      averageCycleLength: periodTracking.averageCycleLength,
+      averagePeriodLength: periodTracking.averagePeriodLength,
+      cycleVariation: periodTracking.cycleVariation,
+
+      // Predictions - use the direct properties from the hook
+      nextPeriodDate: periodTracking.nextPeriodDate,
+      daysUntilNext: periodTracking.daysUntilNextPeriod,
+      isOverdue: periodTracking.isOverdue,
+      overdueBy: periodTracking.overdueByDays,
+      confidenceLevel: periodTracking.predictionConfidence,
+
+      // Progress calculation
       progressPercentage: Math.min(
         100,
-        Math.max(0, (daysSinceStart / averageCycleLength) * 100)
+        Math.max(
+          0,
+          (periodTracking.dayInCycle / periodTracking.averageCycleLength) * 100
+        )
       ),
+
+      // Regularity
+      regularity: periodTracking.cycleRegularity,
+      regularityDescription: periodTracking.regularityDescription,
+
+      // Health insights
+      healthInsights: periodTracking.healthInsights,
+      dataQuality: periodTracking.dataQualityScore,
     };
-  }, [activeProfile]);
+  }, [activeProfile, periodTracking]);
 
   // Memoized quick stats with enhanced calculations and proper notes detection
   const quickStats = useMemo(() => {
@@ -776,22 +795,26 @@ const HomeScreen: React.FC = () => {
 
                     <View style={styles.statusDetails}>
                       <View style={styles.statusItem}>
-                        <Text style={styles.statusLabel}>Started</Text>
+                        <Text style={styles.statusLabel}>Next Expected</Text>
                         <Text style={styles.statusValue}>
-                          {format(cycleInfo.startDate, "MMM dd")}
+                          {cycleInfo.isOverdue
+                            ? `Overdue by ${cycleInfo.overdueBy} days`
+                            : cycleInfo.daysUntilNext > 0
+                            ? `${cycleInfo.daysUntilNext} days`
+                            : "Today"}
                         </Text>
                       </View>
 
                       <View style={styles.statusItem}>
                         <Text style={styles.statusLabel}>
-                          {cycleInfo.daysUntilNext > 0
-                            ? "Next Expected"
-                            : "Overdue"}
+                          {cycleInfo.isOverdue
+                            ? "Confidence"
+                            : "Predicted Date"}
                         </Text>
                         <Text style={styles.statusValue}>
-                          {cycleInfo.daysUntilNext > 0
-                            ? `${cycleInfo.daysUntilNext} days`
-                            : `${Math.abs(cycleInfo.daysUntilNext)} days`}
+                          {cycleInfo.isOverdue
+                            ? `${cycleInfo.confidenceLevel}%`
+                            : format(cycleInfo.nextPeriodDate, "MMM dd")}
                         </Text>
                       </View>
                     </View>
