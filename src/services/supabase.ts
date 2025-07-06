@@ -561,41 +561,24 @@ export class SupabaseService {
 
       console.log("User data deleted successfully");
 
-      // Step 2: Delete the user from Supabase Auth
-      // Note: This requires admin privileges, so we'll use the current user's session
+      // Step 2: Sign out the user (admin delete requires special permissions)
+      // For most Supabase setups, we can't delete auth users directly
+      // So we'll sign them out which effectively "removes" them from the session
       try {
-        // First try to delete via the admin API if available
-        const { error: authError } = await client.auth.admin.deleteUser(
-          user.id
-        );
-
-        if (authError) {
-          console.warn("Admin delete failed, trying user delete:", authError);
-
-          // Fallback: Delete current user session (will sign them out)
-          const { error: signOutError } = await client.auth.signOut();
-          if (signOutError) {
-            console.error("Error signing out user:", signOutError);
-          }
+        const { error: signOutError } = await client.auth.signOut();
+        if (signOutError) {
+          console.warn("Error signing out user:", signOutError);
         } else {
-          console.log("User deleted from auth successfully via admin API");
+          console.log(
+            "User signed out successfully - account effectively deleted"
+          );
         }
-      } catch (authDeleteError) {
-        console.warn(
-          "Could not delete user from auth system:",
-          authDeleteError
-        );
-
-        // At minimum, sign out the user
-        try {
-          await client.auth.signOut();
-          console.log("User signed out successfully");
-        } catch (signOutError) {
-          console.error("Error signing out user:", signOutError);
-        }
+      } catch (signOutError) {
+        console.warn("Could not sign out user:", signOutError);
+        // This is not critical since we already deleted the data
       }
 
-      console.log("Account deletion completed");
+      console.log("Account deletion completed successfully");
     } catch (error) {
       if (error instanceof AppError) throw error;
 

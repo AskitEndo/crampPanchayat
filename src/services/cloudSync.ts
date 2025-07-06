@@ -275,27 +275,27 @@ class CloudSyncService {
       const cloudData = await SupabaseService.importDataFromCloud();
 
       if (cloudData.hasData && cloudData.data) {
-        // If cloud data exists, restore it to local storage (overwrite local data)
-        await this.restoreCloudData(cloudData.data);
-        profilesSynced = 1;
-        totalCyclesSynced = cloudData.data.cycles.length;
-
-        console.log("Cloud data restored successfully:", {
-          cycles: cloudData.data.cycles.length,
-          symptoms: cloudData.data.symptoms.length,
-          notes: cloudData.data.notes.length,
-        });
+        // CHANGED: Do not automatically overwrite local data
+        // User must explicitly choose to sync cloud → local
+        console.log(
+          "Cloud data found but automatic download disabled. Use explicit sync buttons."
+        );
+        profilesSynced = 0;
+        totalCyclesSynced = 0;
       } else {
-        // If no cloud data but local data exists, upload to cloud
+        // If no cloud data but local data exists, upload to cloud (first-time setup)
         await SupabaseService.exportDataToCloud(activeProfile);
         profilesSynced = 1;
         totalCyclesSynced = activeProfile.cycles.length;
 
-        console.log("Local data uploaded to cloud successfully:", {
-          cycles: activeProfile.cycles.length,
-          symptoms: activeProfile.symptoms.length,
-          notes: activeProfile.notes.length,
-        });
+        console.log(
+          "Local data uploaded to cloud successfully (first-time setup):",
+          {
+            cycles: activeProfile.cycles.length,
+            symptoms: activeProfile.symptoms.length,
+            notes: activeProfile.notes.length,
+          }
+        );
       }
 
       const now = new Date().toISOString();

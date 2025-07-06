@@ -259,6 +259,66 @@ const SyncSettingsScreen: React.FC = () => {
     }
   };
 
+  // NEW: Handle explicit local → cloud sync (overwrite cloud)
+  const handleSyncLocalToCloud = async () => {
+    try {
+      const result = await cloudSync.exportToCloudSafe();
+
+      if (result.success) {
+        Alert.alert(
+          "Local → Cloud Sync Complete! ✅",
+          result.message ||
+            "Your local data has been uploaded to the cloud and will overwrite any existing cloud data."
+        );
+      } else {
+        Alert.alert(
+          "Sync Failed",
+          result.message || result.error || "Unknown error occurred"
+        );
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to sync local data to cloud");
+    }
+  };
+
+  // NEW: Handle explicit cloud → local sync (overwrite local)
+  const handleSyncCloudToLocal = async () => {
+    // Show confirmation dialog since this overwrites local data
+    Alert.alert(
+      "⚠️ Overwrite Local Data?",
+      "This will replace ALL your local data with data from the cloud. Your current local data will be lost.\n\nAre you sure you want to continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes, Overwrite",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await cloudSync.importFromCloudSafe();
+
+              if (result.success) {
+                Alert.alert(
+                  "Cloud → Local Sync Complete! ✅",
+                  result.message ||
+                    `Successfully imported ${
+                      result.cyclesImported || 0
+                    } cycles from cloud. Your local data has been replaced.`
+                );
+              } else {
+                Alert.alert(
+                  "Sync Failed",
+                  result.message || result.error || "Unknown error occurred"
+                );
+              }
+            } catch (error) {
+              Alert.alert("Error", "Failed to sync cloud data to local");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
       "Delete Account",
@@ -656,21 +716,93 @@ const SyncSettingsScreen: React.FC = () => {
                     </View>
                   )}
 
+                  {/* Sync explanation for signed in users */}
+                  {syncState.isSignedIn && (
+                    <View style={styles.infoSection}>
+                      <Text style={styles.infoTitle}>🔄 How Sync Works</Text>
+                      <View style={styles.infoItem}>
+                        <Ionicons
+                          name="arrow-up-circle"
+                          size={18}
+                          color="#4CAF50"
+                        />
+                        <Text style={styles.infoText}>
+                          <Text style={styles.infoBold}>Local → Cloud:</Text>{" "}
+                          Upload your phone's data to cloud, replacing any
+                          existing cloud data.
+                        </Text>
+                      </View>
+                      <View style={styles.infoItem}>
+                        <Ionicons
+                          name="arrow-down-circle"
+                          size={18}
+                          color="#2196F3"
+                        />
+                        <Text style={styles.infoText}>
+                          <Text style={styles.infoBold}>Cloud → Local:</Text>{" "}
+                          Download cloud data to your phone, replacing your
+                          current local data.
+                        </Text>
+                      </View>
+                      <View style={styles.infoItem}>
+                        <Ionicons
+                          name="information-circle"
+                          size={18}
+                          color="#FF9800"
+                        />
+                        <Text style={styles.infoText}>
+                          <Text style={styles.infoBold}>Choose wisely:</Text>{" "}
+                          Both actions completely overwrite the destination
+                          data.
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+
                   {/* Sync actions for signed in users */}
                   {syncState.isSignedIn && (
                     <View style={styles.syncActionsContainer}>
                       <TouchableOpacity
                         style={[
                           styles.actionButton,
+                          styles.exportButton,
                           syncState.isLoading && styles.disabledButton,
                         ]}
-                        onPress={handleSync}
+                        onPress={handleSyncLocalToCloud}
                         disabled={syncState.isLoading}
                       >
-                        <Ionicons name="sync" size={20} color="#E91E63" />
-                        <Text style={styles.actionButtonText}>Sync Now</Text>
+                        <Ionicons
+                          name="cloud-upload"
+                          size={20}
+                          color="#4CAF50"
+                        />
+                        <Text style={styles.actionButtonText}>
+                          Sync Local → Cloud
+                        </Text>
                         <Text style={styles.actionButtonSubtext}>
-                          Backup all local data
+                          Upload & overwrite cloud data
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.actionButton,
+                          styles.importButton,
+                          syncState.isLoading && styles.disabledButton,
+                        ]}
+                        onPress={handleSyncCloudToLocal}
+                        disabled={syncState.isLoading}
+                      >
+                        <Ionicons
+                          name="cloud-download"
+                          size={20}
+                          color="#2196F3"
+                        />
+                        <Text style={styles.actionButtonText}>
+                          Sync Cloud → Local
+                        </Text>
+                        <Text style={styles.actionButtonSubtext}>
+                          Download & overwrite local data
                         </Text>
                       </TouchableOpacity>
 
@@ -1009,6 +1141,18 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 16,
     fontWeight: "500",
+  },
+  exportButton: {
+    borderWidth: 1,
+    borderColor: "rgba(76, 175, 80, 0.3)",
+  },
+  importButton: {
+    borderWidth: 1,
+    borderColor: "rgba(33, 150, 243, 0.3)",
+  },
+  infoBold: {
+    fontWeight: "600",
+    color: "#333",
   },
 });
 

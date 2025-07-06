@@ -149,31 +149,47 @@ const HomeScreen: React.FC = () => {
     // Count total notes from both direct notes and notes within symptoms
     // FIXED: More accurate counting that doesn't double-count or include empty entries
     let totalNotesCount = 0;
+    const seenNotes = new Set<string>(); // Track date+note combinations to avoid duplicates
 
     // Count direct notes (only non-empty ones)
     if (activeProfile.notes && Array.isArray(activeProfile.notes)) {
-      totalNotesCount += activeProfile.notes.filter(
-        (note) => note && note.note && note.note.trim().length > 0
-      ).length;
+      activeProfile.notes.forEach((note) => {
+        if (note && note.note && note.note.trim().length > 0) {
+          const noteKey = `${note.date}:${note.note.trim()}`;
+          if (!seenNotes.has(noteKey)) {
+            seenNotes.add(noteKey);
+            totalNotesCount++;
+          }
+        }
+      });
     }
 
-    // Add notes from symptoms that have meaningful notes
+    // Add notes from symptoms that have meaningful notes (avoid duplicates)
     if (activeProfile.symptoms && Array.isArray(activeProfile.symptoms)) {
-      const symptomsWithNotes = activeProfile.symptoms.filter(
-        (s) =>
-          s.notes && typeof s.notes === "string" && s.notes.trim().length > 0
-      );
-      totalNotesCount += symptomsWithNotes.length;
+      activeProfile.symptoms.forEach((symptom) => {
+        if (symptom.notes && symptom.notes.trim().length > 0) {
+          const noteKey = `${symptom.date}:${symptom.notes.trim()}`;
+          if (!seenNotes.has(noteKey)) {
+            seenNotes.add(noteKey);
+            totalNotesCount++;
+          }
+        }
+      });
     }
 
-    // Add notes from cycles (only meaningful cycle notes)
+    // Add notes from cycles (only meaningful cycle notes, avoid duplicates)
     if (activeProfile.cycles && Array.isArray(activeProfile.cycles)) {
       activeProfile.cycles.forEach((cycle) => {
         if (cycle.notes && typeof cycle.notes === "object") {
-          const cycleNotesCount = Object.values(cycle.notes).filter(
-            (note) => note && typeof note === "string" && note.trim().length > 0
-          ).length;
-          totalNotesCount += cycleNotesCount;
+          Object.entries(cycle.notes).forEach(([date, note]) => {
+            if (note && typeof note === "string" && note.trim().length > 0) {
+              const noteKey = `${date}:${note.trim()}`;
+              if (!seenNotes.has(noteKey)) {
+                seenNotes.add(noteKey);
+                totalNotesCount++;
+              }
+            }
+          });
         }
       });
     }
@@ -284,6 +300,25 @@ const HomeScreen: React.FC = () => {
     }
   }, [refreshing, refreshProfiles, refreshQuote]);
 
+  // Helper function to navigate to symptoms with proper parameters
+  const navigateToSymptoms = useCallback(() => {
+    if (activeProfile) {
+      navigation.navigate("Symptoms", {
+        profileId: activeProfile.id,
+        date: new Date().toISOString().split("T")[0],
+      });
+    }
+  }, [activeProfile, navigation]);
+
+  // Helper function to navigate to calendar with proper parameters
+  const navigateToCalendar = useCallback(() => {
+    if (activeProfile) {
+      navigation.navigate("Calendar", {
+        profileId: activeProfile.id,
+      });
+    }
+  }, [activeProfile, navigation]);
+
   // Quick action handlers
   const quickActions = useMemo(
     () => [
@@ -292,21 +327,35 @@ const HomeScreen: React.FC = () => {
         title: "Log Period",
         subtitle: "Mark period start",
         color: "#FF6B6B",
-        onPress: () => navigation.navigate("Calendar"),
+        onPress: navigateToCalendar,
       },
       {
         icon: "heart",
         title: "Track Symptoms",
         subtitle: "How are you feeling?",
         color: "#4ECDC4",
-        onPress: () => navigation.navigate("Symptoms"),
+        onPress: navigateToSymptoms,
+      },
+      {
+        icon: "document-text",
+        title: "See My Notes",
+        subtitle: `${quickStats?.totalNotes || 0} notes`,
+        color: "#FFA726",
+        onPress: () => handleViewNotes(),
+      },
+      {
+        icon: "analytics",
+        title: "See My Symptoms",
+        subtitle: `${quickStats?.totalSymptoms || 0} symptoms`,
+        color: "#AB47BC",
+        onPress: () => handleViewSymptoms(),
       },
       {
         icon: "calendar",
         title: "View Calendar",
         subtitle: "See your cycle",
         color: "#45B7D1",
-        onPress: () => navigation.navigate("Calendar"),
+        onPress: navigateToCalendar,
       },
       {
         icon: "settings",
@@ -316,7 +365,7 @@ const HomeScreen: React.FC = () => {
         onPress: () => navigation.navigate("Settings"),
       },
     ],
-    [navigation]
+    [navigation, quickStats, navigateToSymptoms, navigateToCalendar]
   );
 
   // Enhanced profile switching with better error handling and auto-refresh
@@ -349,8 +398,183 @@ const HomeScreen: React.FC = () => {
     [activeProfile?.id, selectProfile, navigation, refreshProfiles]
   );
 
+  // Handle viewing all notes
+  const handleViewNotes = useCallback(() => {
+    if (!activeProfile) {
+      Alert.alert("No Profile", "Please select a profile first");
+      return;
+    }
+
+    // Collect all notes from different sources with deduplication
+    const allNotes: Array<{ date: string; note: string; source: string }> = [];
+    const seenNotes = new Set<string>(); // Track date+note combinations to avoid duplicates
+
+    // Direct notes (DailyNote entries)
+    if (activeProfile.notes && Array.isArray(activeProfile.notes)) {
+      activeProfile.notes.forEach((note) => {
+        if (note && note.note && note.note.trim().length > 0) {
+          const noteKey = `${note.date}:${note.note.trim()}`;
+          if (!seenNotes.has(noteKey)) {
+            seenNotes.add(noteKey);
+            allNotes.push({
+              date: note.date,
+              note: note.note,
+              source: "Daily Note",
+            });
+          }
+        }
+      });
+    }
+
+    // Notes from symptoms (SymptomRecord.notes)
+    if (activeProfile.symptoms && Array.isArray(activeProfile.symptoms)) {
+      activeProfile.symptoms.forEach((symptom) => {
+        if (symptom.notes && symptom.notes.trim().length > 0) {
+          const noteKey = `${symptom.date}:${symptom.notes.trim()}`;
+          if (!seenNotes.has(noteKey)) {
+            seenNotes.add(noteKey);
+            allNotes.push({
+              date: symptom.date,
+              note: symptom.notes,
+              source: "Symptom Note",
+            });
+          }
+        }
+      });
+    }
+
+    // Notes from cycles (CycleRecord.notes) - only if not already added from symptoms
+    if (activeProfile.cycles && Array.isArray(activeProfile.cycles)) {
+      activeProfile.cycles.forEach((cycle) => {
+        if (cycle.notes && typeof cycle.notes === "object") {
+          Object.entries(cycle.notes).forEach(([date, note]) => {
+            if (note && typeof note === "string" && note.trim().length > 0) {
+              const noteKey = `${date}:${note.trim()}`;
+              if (!seenNotes.has(noteKey)) {
+                seenNotes.add(noteKey);
+                allNotes.push({
+                  date,
+                  note,
+                  source: "Cycle Note",
+                });
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // Sort notes by date (newest first)
+    allNotes.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    if (allNotes.length === 0) {
+      Alert.alert(
+        "No Notes Found",
+        "You haven't written any notes yet. Start tracking your symptoms or add daily notes to see them here!"
+      );
+      return;
+    }
+
+    // Create a formatted message for the alert
+    const notesText = allNotes
+      .slice(0, 10) // Show only first 10 notes to avoid overwhelming the alert
+      .map((note) => {
+        const formattedDate = format(new Date(note.date), "MMM dd, yyyy");
+        return `📅 ${formattedDate} (${note.source})\n📝 ${
+          note.note.length > 100
+            ? note.note.substring(0, 100) + "..."
+            : note.note
+        }`;
+      })
+      .join("\n\n");
+
+    const moreText =
+      allNotes.length > 10
+        ? `\n\n... and ${allNotes.length - 10} more notes`
+        : "";
+
+    Alert.alert(
+      `📝 Your Notes (${allNotes.length})`,
+      notesText + moreText,
+      [
+        { text: "Close", style: "cancel" },
+        {
+          text: "Add Note",
+          onPress: () => {
+            if (activeProfile) {
+              navigation.navigate("Symptoms", {
+                profileId: activeProfile.id,
+                date: new Date().toISOString().split("T")[0], // Today's date in YYYY-MM-DD format
+              });
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  }, [activeProfile, navigation]);
+
+  // Handle viewing all symptoms
+  const handleViewSymptoms = useCallback(() => {
+    if (!activeProfile) {
+      Alert.alert("No Profile", "Please select a profile first");
+      return;
+    }
+
+    if (!activeProfile.symptoms || activeProfile.symptoms.length === 0) {
+      Alert.alert(
+        "No Symptoms Found",
+        "You haven't tracked any symptoms yet. Start tracking how you feel to see patterns and insights!"
+      );
+      return;
+    }
+
+    // Group symptoms by date and create summary
+    const symptomsByDate = activeProfile.symptoms
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10); // Show last 10 entries
+
+    const symptomsText = symptomsByDate
+      .map((symptom) => {
+        const formattedDate = format(new Date(symptom.date), "MMM dd, yyyy");
+        const intensities = symptom.symptoms
+          .map((s) => `${s.type}: ${s.intensity}`)
+          .join(", ");
+        const noteText = symptom.notes ? `\n💭 ${symptom.notes}` : "";
+        return `📅 ${formattedDate}\n💝 ${intensities}${noteText}`;
+      })
+      .join("\n\n");
+
+    const moreText =
+      activeProfile.symptoms.length > 10
+        ? `\n\n... and ${activeProfile.symptoms.length - 10} more entries`
+        : "";
+
+    Alert.alert(
+      `💗 Your Symptoms (${activeProfile.symptoms.length})`,
+      symptomsText + moreText,
+      [
+        { text: "Close", style: "cancel" },
+        {
+          text: "Track Now",
+          onPress: () => {
+            if (activeProfile) {
+              navigation.navigate("Symptoms", {
+                profileId: activeProfile.id,
+                date: new Date().toISOString().split("T")[0], // Today's date
+              });
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  }, [activeProfile, navigation]);
+
   // Handle period tracking
-  const handleTrackPeriod = async () => {
+  const handleTrackPeriod = useCallback(() => {
     if (!activeProfile) {
       Alert.alert("No Profile", "Please select a profile first");
       return;
@@ -369,79 +593,11 @@ const HomeScreen: React.FC = () => {
       return;
     }
 
-    // Check if profile already has a cycle (enforce one profile = one cycle rule)
-    if (activeProfile.cycles.length >= 1) {
-      Alert.alert(
-        "One Profile, One Cycle 📋",
-        `This profile (${activeProfile.emoji} ${
-          activeProfile.name || "Unnamed"
-        }) already has an active cycle being tracked.\n\nTo track a new cycle, please create a new profile or switch to a different profile.`,
-        [
-          { text: "Cancel" },
-          {
-            text: "Create New Profile",
-            onPress: () => navigation.navigate("ProfileSelector"),
-          },
-          {
-            text: "Switch Profile",
-            onPress: () => navigation.navigate("ProfileSelector"),
-          },
-        ]
-      );
-      return;
-    }
-
-    // This code should never be reached since we check for cycles.length === 0 above,
-    // but keeping it as fallback for safety
-    Alert.alert("Track Period", "Did your period start today?", [
-      { text: "Cancel" },
-      {
-        text: "Yes, Today",
-        onPress: async () => {
-          try {
-            const storage = StorageService.getInstance();
-            await storage.addCycleRecord(activeProfile.id, {
-              startDate: new Date().toISOString(),
-              periodDays: [new Date().toISOString()],
-              symptoms: {},
-              notes: {},
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            });
-
-            // Immediately refresh profiles to show new data
-            await refreshProfiles();
-
-            Alert.alert(
-              "Success! 🎉",
-              "Period start logged for today! Your new cycle has been created and tracking has begun.",
-              [
-                {
-                  text: "Great!",
-                  onPress: async () => {
-                    // Force another refresh to ensure UI is updated
-                    await refreshProfiles();
-                    // Show donation prompt if enabled
-                    await donationPromptManager.showDonationPromptIfEnabled(
-                      navigation,
-                      "cycle_started"
-                    );
-                  },
-                },
-              ]
-            );
-          } catch (error) {
-            console.error("Error logging period:", error);
-            Alert.alert("Error", "Failed to log period start");
-          }
-        },
-      },
-      {
-        text: "Different Date",
-        onPress: () => navigation.navigate("Calendar"),
-      },
-    ]);
-  };
+    // Navigate to calendar to log period
+    navigation.navigate("Calendar", {
+      profileId: activeProfile.id,
+    });
+  }, [activeProfile, navigation]);
 
   // Remove duplicate auto-refresh effect - we handle this in useFocusEffect now
   useEffect(() => {

@@ -37,11 +37,51 @@ const SettingsScreen: React.FC = () => {
   const [cloudAccountsCount, setCloudAccountsCount] = useState(0);
   const [statsLoading, setStatsLoading] = useState(false);
 
+  // Define loadCloudAccountsCount function first
+  const loadCloudAccountsCount = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      // Add haptic feedback for user interaction
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // UNIVERSAL STATISTICS: Always show total cloud users regardless of sign-in status
+      // This gives users an idea of how many people are using CrampPanchayat with cloud sync
+      const { SupabaseService } = await import("../services/supabase");
+      const cloudStats = await SupabaseService.getCloudUserStatistics();
+
+      if (cloudStats.error) {
+        console.warn(
+          "Error getting universal cloud statistics:",
+          cloudStats.error
+        );
+        // Even on error, try to show some helpful info
+        setCloudAccountsCount(0);
+      } else {
+        // Show total unique cloud users (universal count)
+        setCloudAccountsCount(cloudStats.totalUsers);
+        console.log("Universal cloud statistics loaded:", cloudStats);
+      }
+    } catch (error) {
+      console.error("Failed to load universal cloud statistics:", error);
+      // On any error, default to 0 but don't break the UI
+      setCloudAccountsCount(0);
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
   // Force refresh when screen is focused
   useFocusEffect(
     useCallback(() => {
       refreshProfiles();
     }, [refreshProfiles])
+  );
+
+  // Load universal statistics when screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      loadCloudAccountsCount();
+    }, [loadCloudAccountsCount])
   );
 
   // Load profile statistics whenever activeProfile changes
@@ -55,44 +95,19 @@ const SettingsScreen: React.FC = () => {
         lastActive: new Date(activeProfile.lastActive).toLocaleDateString(),
       };
       setProfileStats(stats);
-      loadCloudAccountsCount();
     } else {
       setProfileStats(null);
-      setCloudAccountsCount(0);
     }
-  }, [activeProfile]);
+
+    // UNIVERSAL: Always load cloud statistics regardless of profile status
+    loadCloudAccountsCount();
+  }, [activeProfile, loadCloudAccountsCount]);
 
   // Pull to refresh handler
   const handleRefresh = async () => {
     setRefreshing(true);
     await refreshProfiles();
     setRefreshing(false);
-  };
-
-  const loadCloudAccountsCount = async () => {
-    try {
-      setStatsLoading(true);
-      // Add haptic feedback for user interaction
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      // FIXED: Get actual unique cloud user statistics, not device-specific accounts
-      const { SupabaseService } = await import("../services/supabase");
-      const cloudStats = await SupabaseService.getCloudUserStatistics();
-
-      if (cloudStats.error) {
-        console.warn("Error getting cloud statistics:", cloudStats.error);
-        setCloudAccountsCount(0);
-      } else {
-        // Use total unique cloud users instead of device-specific accounts
-        setCloudAccountsCount(cloudStats.totalUsers);
-        console.log("Cloud statistics loaded:", cloudStats);
-      }
-    } catch (error) {
-      console.error("Failed to load cloud statistics:", error);
-      setCloudAccountsCount(0);
-    } finally {
-      setStatsLoading(false);
-    }
   };
 
   const handleManageCloudAccounts = async () => {
@@ -776,10 +791,10 @@ const SettingsScreen: React.FC = () => {
                 <Ionicons name="globe-outline" size={28} color="#4CAF50" />
                 <View style={styles.statsHeaderText}>
                   <Text style={styles.statsTitle}>
-                    People Using CrampPanchayat
+                    CrampPanchayat Global Usage
                   </Text>
                   <Text style={styles.statsSubtitle}>
-                    Live cloud sync users
+                    Universal cloud user statistics
                   </Text>
                 </View>
                 {statsLoading && (
@@ -797,9 +812,9 @@ const SettingsScreen: React.FC = () => {
                   <Text style={styles.statNumber}>
                     {statsLoading ? "..." : cloudAccountsCount}
                   </Text>
-                  <Text style={styles.statsDataLabel}>Cloud Sync Profiles</Text>
+                  <Text style={styles.statsDataLabel}>Total Cloud Users</Text>
                   <Text style={styles.statDescription}>
-                    Active users with cloud backup
+                    People using CrampPanchayat with cloud sync worldwide
                   </Text>
                 </View>
 
@@ -812,8 +827,9 @@ const SettingsScreen: React.FC = () => {
                     color="#666"
                   />
                   <Text style={styles.statsNoteText}>
-                    Offline users not counted - actual usage likely much higher!
-                    🌟
+                    This shows total users worldwide using cloud sync.
+                    Offline-only users not counted - actual CrampPanchayat usage
+                    is much higher! �✨
                   </Text>
                 </View>
 
