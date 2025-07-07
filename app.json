@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#E91E63"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cramppanchayat.app"
@@ -25,6 +27,11 @@
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6aaf303b-bac1-4572-8a6a-0870bcd5c27b"
+      }
     }
   }
 }
