@@ -14,11 +14,9 @@ package-lock.json
 dist/
 web-build/
 
-# app.json and eas.json
-# These files are often generated and should not be committed
+# Configuration files with sensitive data
 eas.json
 app.json
-
 
 # Native
 *.orig.*
