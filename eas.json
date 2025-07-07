@@ -12,6 +12,10 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://your-actual-project-id.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-actual-anon-key-here"
       }
     },
     "preview2": {
@@ -29,6 +33,10 @@
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://your-actual-project-id.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "your-actual-anon-key-here"
       }
     }
   },
