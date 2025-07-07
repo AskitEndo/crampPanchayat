@@ -1,22 +1,56 @@
-# 🔒 Privacy Policy
+# 🔒 Privacy Policy & Terms of Use
 
 **CrampPanchayat - Privacy-First Period Tracking**
 
-_Last Updated: July 6, 2025_
+_Last Updated: July 7, 2025_
 
-## 🌟 Our Privacy Commitment
+## 🌟 Our Commitment
 
-CrampPanchayat is built with privacy as the foundation. We believe menstrual health data is deeply personal, and we've designed our app to protect your privacy while providing useful tracking features. **This app is production-ready with comprehensive privacy protections and real-time security features.**
+CrampPanchayat is a **fun, local-first** period tracking app created as an open-source project. We believe menstrual health data is deeply personal, and we've designed our app to protect your privacy while providing useful tracking features. **This is a personal project made with love, not a commercial venture.**
 
-## 🎭 Anonymous by Design
+## 📋 Terms of Use
 
-### Emoji-Based Identity
+### 🎯 About This App
+
+- **Personal Project**: CrampPanchayat is created by an individual developer as a passion project
+- **Open Source**: Anyone can view, copy, modify, and contribute to the code
+- **Free to Use**: The app is completely free with no hidden costs or subscriptions
+- **No Warranties**: This app is provided "as is" without any guarantees
+- **For Fun & Education**: Built to help people track their periods in a privacy-friendly way
+
+### 💝 Donations & Support
+
+- **Optional Donations**: We accept donations through UPI QR codes to support development
+- **No Obligation**: Donations are entirely voluntary and don't affect app functionality
+- **Open Source**: Even if you don't donate, you can still use, modify, and distribute the app
+- **Community Support**: Anyone can contribute code, translations, or improvements
+
+### 🚫 Limitations & Disclaimers
+
+- **Not Medical Advice**: This app is for tracking purposes only, not medical diagnosis
+- **Use at Your Own Risk**: We're not liable for any issues arising from app usage
+- **No Guarantees**: We don't guarantee the app will work perfectly for everyone
+- **Educational Purpose**: This is a learning project, not a commercial product
+- **Personal Responsibility**: You're responsible for your own health decisions
+
+### 🤝 Community Guidelines
+
+- **Be Respectful**: Treat other users and contributors with respect
+- **No Harmful Use**: Don't use the app for anything illegal or harmful
+- **Share Responsibly**: When sharing the app, respect others' privacy
+- **Contribute Positively**: If you contribute, help make the app better for everyone
+
+## 🔒 Privacy Policy
+
+### 🎭 Anonymous by Design
+
+#### Emoji-Based Identity
 
 - **No Personal Information Required**: No name, email, phone number, or real identity needed
 - **Emoji Profiles**: Choose from 16 diverse emojis (🩷, 🦋, 🌙, etc.) as your anonymous identity
 - **Multiple Profiles**: Support for family sharing with separate anonymous profiles
 
-### Anonymous User IDs
+#### Anonymous User IDs
 
 - Automatically generated anonymous identifiers (e.g., "anon_xyz123")
 - No connection to your real identity
@@ -189,35 +223,28 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 5. **Cloud Account Deletion**: Complete removal from all cloud systems with verification
 6. **Real-time Confirmation**: Immediate feedback on deletion success
 
-## 📞 Contact Information
+### Contact & Support
 
-### Privacy Questions
+- **GitHub Issues**: Report bugs or request features on our GitHub repository
+- **Community Support**: Get help from other users and contributors
+- **Developer Contact**: Reach out through GitHub for major issues
+- **Response Time**: Best effort support (this is a personal project)
 
-- **Email**: privacy@cramppanchayat.com
-- **Response Time**: Within 48 hours
-- **Secure Communication**: PGP encryption available upon request
+## 🔄 Updates & Changes
 
-### Data Protection Officer
+### Policy Updates
 
-- **Contact**: dpo@cramppanchayat.com
-- **Role**: Independent oversight of privacy practices
-- **Complaints**: File privacy complaints or concerns
-
-## 🔄 Policy Updates
-
-### Notification of Changes
-
-- **App Notifications**: You'll be notified of any privacy policy changes
-- **Consent Required**: Material changes require your explicit consent
-- **Version History**: All policy versions available for review
+- **GitHub Notifications**: Major changes will be announced on GitHub
+- **App Updates**: Privacy changes will be noted in app update descriptions
+- **Community Input**: We welcome feedback on privacy and terms policies
 - **No Retroactive Changes**: Changes don't affect previously collected data
 
 ### Current Version
 
 - **Version**: 1.0.5
-- **Last Updated**: July 6, 2025
-- **Next Review**: January 6, 2026
-- **Recent Updates**: Enhanced cloud sync privacy, real-time username checking, robust user deletion
+- **Last Updated**: July 7, 2025
+- **Next Review**: January 7, 2026
+- **Status**: Personal open-source project with community support
 
 ## 🌈 Cultural Sensitivity
 
@@ -277,23 +304,21 @@ CrampPanchayat is built with privacy as the foundation. We believe menstrual hea
 
 ## 📋 Summary
 
-**CrampPanchayat is designed to be the most private period tracking app available:**
+**CrampPanchayat is a fun, privacy-first period tracking app designed for personal use:**
 
 ✅ **Anonymous emoji-based profiles**  
 ✅ **Offline-first with optional cloud sync**  
 ✅ **No personal information required**  
 ✅ **Complete user control over data**  
 ✅ **Open source transparency**  
-✅ **GDPR and global privacy law compliant**  
-✅ **Cultural sensitivity and inclusivity**  
+✅ **Free to use with optional donations**  
+✅ **Community-driven development**  
 ✅ **Easy data export and deletion**  
 ✅ **Real-time username privacy protection**  
-✅ **Advanced database security with RLS**  
-✅ **Robust user deletion with complete cleanup**  
-✅ **Production-tested privacy measures**
+✅ **Personal project made with love**
 
-Your menstrual health data belongs to you, and we're committed to keeping it that way with the latest privacy technologies and security practices.
+Your menstrual health data belongs to you, and we're committed to keeping it that way. This app is created for fun, learning, and helping people track their periods privately.
 
 ---
 
-_This privacy policy is written in plain language to ensure everyone can understand their rights and our practices. If you have any questions, please don't hesitate to contact us._
+_This privacy policy and terms of use are written in plain language. This is a personal project, not a commercial venture. Use at your own discretion and enjoy! 🩷_

@@ -165,6 +165,7 @@ export type RootStackParamList = {
   SyncSettings: undefined;
   Donation: undefined;
   Support: { showDonationPrompt?: boolean } | undefined;
+  HowToUse: undefined;
 };
 
 export type TabParamList = {

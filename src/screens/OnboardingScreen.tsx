@@ -244,6 +244,16 @@ const OnboardingScreen: React.FC = () => {
             </TouchableOpacity>
           )}
 
+          {/* How to Use Button */}
+          <TouchableOpacity
+            style={styles.howToUseButton}
+            onPress={() => navigation.navigate("HowToUse")}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.howToUseButtonText}>How to Use This App</Text>
+            <Ionicons name="arrow-forward" size={20} color="#6B46C1" />
+          </TouchableOpacity>
+
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               ✨ Your data stays private and secure on your device
@@ -440,6 +450,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     opacity: 0.8,
+  },
+  howToUseButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#6B46C1",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  howToUseButtonText: {
+    fontSize: 16,
+    color: "#6B46C1",
+    fontWeight: "600",
   },
 });
 

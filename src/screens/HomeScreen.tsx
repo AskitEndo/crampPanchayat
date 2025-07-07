@@ -914,6 +914,15 @@ const HomeScreen: React.FC = () => {
                 </View>
               </View>
             )}
+            {/* How to Use Button */}
+            <TouchableOpacity
+              style={styles.howToUseButton}
+              onPress={() => navigation.navigate("HowToUse")}
+              activeOpacity={0.4}
+            >
+              <Text style={styles.howToUseButtonText}>How to Use This App</Text>
+              <Ionicons name="arrow-forward" size={20} color="#6B46C1" />
+            </TouchableOpacity>
 
             {/* No Profiles State - Always show if no profiles */}
             {(profiles.length === 0 ||
@@ -1432,6 +1441,28 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     fontSize: 14,
     lineHeight: 20,
+  },
+  howToUseButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(255, 255, 255, 0.4)",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#6B46C1",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  howToUseButtonText: {
+    fontSize: 16,
+    color: "#6B46C1",
+    fontWeight: "600",
   },
 });
 

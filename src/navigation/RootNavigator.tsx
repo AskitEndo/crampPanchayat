@@ -20,6 +20,7 @@ import SymptomsScreen from "../screens/SymptomsScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import SupportScreen from "../screens/SupportScreen";
 import SyncSettingsScreen from "../screens/SyncSettingsScreen";
+import HowToUseScreen from "../screens/HowToUseScreen";
 
 const Stack = createStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -132,6 +133,7 @@ const RootNavigator: React.FC = () => {
         <Stack.Screen name="PeriodSetup" component={PeriodSetupScreen} />
         <Stack.Screen name="SyncSettings" component={SyncSettingsScreen} />
         <Stack.Screen name="Support" component={SupportScreen} />
+        <Stack.Screen name="HowToUse" component={HowToUseScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

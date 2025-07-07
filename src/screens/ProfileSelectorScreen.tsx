@@ -234,7 +234,20 @@ const ProfileSelectorScreen: React.FC = () => {
 
         {profiles.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No profiles found</Text>
+            <Text style={styles.emptyText}>Welcome to CrampPanchayat! 🩷</Text>
+            <Text style={styles.emptySubtext}>
+              Create your first profile to start tracking your periods privately
+              and securely.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.howToUseButton}
+              onPress={() => navigation.navigate("HowToUse")}
+            >
+              <Text style={styles.howToUseButtonText}>How to Use This App</Text>
+              <Ionicons name="arrow-forward" size={20} color="#6B46C1" />
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.createFirstButton}
               onPress={() => setShowCreateModal(true)}
@@ -523,6 +536,30 @@ const styles = StyleSheet.create({
   },
   profileCardDisabled: {
     opacity: 0.6,
+  },
+  emptySubtext: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginVertical: 10,
+    lineHeight: 22,
+  },
+  howToUseButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#6B46C1",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    marginVertical: 15,
+  },
+  howToUseButtonText: {
+    fontSize: 16,
+    color: "#6B46C1",
+    fontWeight: "600",
   },
 });
 
