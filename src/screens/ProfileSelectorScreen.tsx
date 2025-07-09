@@ -14,6 +14,7 @@ import {
   Modal,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -234,6 +235,12 @@ const ProfileSelectorScreen: React.FC = () => {
 
         {profiles.length === 0 && (
           <View style={styles.emptyState}>
+            <View style={styles.emptyIconContainer}>
+              <Image
+                source={require("../assets/images/app-icon.png")}
+                style={styles.emptyIcon}
+              />
+            </View>
             <Text style={styles.emptyText}>Welcome to CrampPanchayat! 🩷</Text>
             <Text style={styles.emptySubtext}>
               Create your first profile to start tracking your periods privately
@@ -424,6 +431,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 60,
   },
+  emptyIconContainer: {
+    marginBottom: 20,
+  },
   emptyText: {
     fontSize: 16,
     color: "#666",
@@ -528,6 +538,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     backgroundColor: "#FFE5EC",
     borderRadius: 12,
+  },
+  emptyIcon: {
+    width: 80,
+    height: 80,
   },
   switchingText: {
     fontSize: 12,

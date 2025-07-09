@@ -24,6 +24,7 @@ import { RootStackParamList } from "../types";
 import { useProfiles } from "../hooks/useProfiles";
 import { StorageService } from "../services/storage";
 import { CloudSyncService } from "../services/cloudSync";
+import * as Clipboard from "expo-clipboard";
 
 type SettingsNavigationProp = StackNavigationProp<RootStackParamList>;
 
@@ -392,13 +393,16 @@ const SettingsScreen: React.FC = () => {
 
       const jsonString = JSON.stringify(exportData, null, 2);
 
+      // Copy to clipboard
+      await Clipboard.setStringAsync(jsonString);
+
       Alert.alert(
         "Profile Data Exported! 📤",
         `Your ${
           activeProfile.emoji
         } profile data has been prepared for export.\n\nData size: ${(
           jsonString.length / 1024
-        ).toFixed(2)} KB\n\nCheck the console logs for the exported JSON data.`,
+        ).toFixed(2)} KB\n\nData copied to clipboard and logged to console.`,
         [
           { text: "OK" },
           {

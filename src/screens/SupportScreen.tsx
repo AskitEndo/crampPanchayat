@@ -60,11 +60,11 @@ const SupportScreen: React.FC = () => {
       setGithubProfile(data);
     } catch (error) {
       console.error("Failed to fetch GitHub profile:", error);
-      // Fallback data
+      // Fallback data with local image
       setGithubProfile({
         name: "AskitEndo",
         bio: "Passionate developer with love for open source",
-        avatar_url: "https://avatars.githubusercontent.com/u/160294709?v=4",
+        avatar_url: null, // Set to null to use local image
         public_repos: "Various",
         followers: "Open Source Community",
       });
@@ -229,9 +229,19 @@ const SupportScreen: React.FC = () => {
               {githubProfile && (
                 <View style={styles.profileImageContainer}>
                   <Image
-                    source={{ uri: githubProfile.avatar_url }}
+                    source={
+                      githubProfile.avatar_url
+                        ? { uri: githubProfile.avatar_url }
+                        : require("../assets/images/AskitEndo.png")
+                    }
                     style={styles.profileImage}
                     defaultSource={require("../assets/images/AskitEndo.png")}
+                    onError={() => {
+                      // If URL fails to load, update state to use local image
+                      setGithubProfile((prev) =>
+                        prev ? { ...prev, avatar_url: null } : null
+                      );
+                    }}
                   />
                 </View>
               )}

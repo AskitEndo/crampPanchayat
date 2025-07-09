@@ -15,6 +15,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useProfiles } from "../hooks";
 import { Button } from "../components";
+import { StorageService } from "../services/storage";
+import * as Clipboard from "expo-clipboard";
 
 // Create Profile Screen
 export function CreateProfileScreen() {
@@ -469,7 +471,44 @@ export function SettingsScreen() {
           {/* Data Management */}
           <View style={styles.dataSection}>
             <Text style={styles.sectionTitle}>Data Management</Text>
-            <TouchableOpacity style={styles.dangerButton}>
+            <TouchableOpacity
+              style={styles.dangerButton}
+              onPress={async () => {
+                try {
+                  const storage = StorageService.getInstance();
+                  const exportData = await storage.exportData();
+
+                  // Copy to clipboard
+                  await Clipboard.setStringAsync(exportData);
+
+                  Alert.alert(
+                    "Export Complete! 📤",
+                    `Your data has been prepared for export.\n\nData size: ${(
+                      exportData.length / 1024
+                    ).toFixed(
+                      2
+                    )} KB\n\nData copied to clipboard and logged to console.`,
+                    [
+                      { text: "OK" },
+                      {
+                        text: "View in Console",
+                        onPress: () => {
+                          console.log("📋 === EXPORTED DATA ===");
+                          console.log(exportData);
+                          console.log("📋 === END EXPORT ===");
+                        },
+                      },
+                    ]
+                  );
+                } catch (error) {
+                  Alert.alert(
+                    "Export Failed",
+                    "Failed to export data. Please try again."
+                  );
+                  console.error("Export error:", error);
+                }
+              }}
+            >
               <Text style={styles.dangerButtonText}>Export All Data</Text>
             </TouchableOpacity>
             <TouchableOpacity

@@ -27,6 +27,7 @@ import { useProfiles } from "../hooks/useProfiles";
 import { StorageService } from "../services/storage";
 import { format, parseISO } from "date-fns";
 import { SYMPTOMS } from "../constants";
+import * as Clipboard from "expo-clipboard";
 
 type DataManagementNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -144,11 +145,14 @@ const DataManagementScreen: React.FC = () => {
       const storage = StorageService.getInstance();
       const exportData = await storage.exportData();
 
+      // Copy to clipboard
+      await Clipboard.setStringAsync(exportData);
+
       Alert.alert(
         "Export Complete! 📤",
         `Your data has been prepared for export.\n\nData size: ${(
           exportData.length / 1024
-        ).toFixed(2)} KB\n\nCheck the console logs for the exported JSON data.`,
+        ).toFixed(2)} KB\n\nData copied to clipboard and logged to console.`,
         [
           { text: "OK" },
           {

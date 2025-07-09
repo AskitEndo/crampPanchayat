@@ -2,7 +2,6 @@
 // Cloud data import/export service (not profile-based)
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import Constants from "expo-constants";
 import {
   Database,
   Profile,
@@ -14,6 +13,7 @@ import {
   CyclePrediction,
 } from "../types";
 import { AppError, PrivacyUtils } from "../utils";
+import { ENV_CONFIG } from "../constants";
 
 // Cloud data structure for storage - includes ALL profile data
 interface CloudPeriodData {
@@ -25,15 +25,9 @@ interface CloudPeriodData {
   lastUpdated: string;
 }
 
-// Get Supabase credentials from environment variables
-const SUPABASE_URL =
-  Constants.expoConfig?.extra?.supabaseUrl ||
-  process.env.EXPO_PUBLIC_SUPABASE_URL ||
-  "https://your-project.supabase.co";
-const SUPABASE_ANON_KEY =
-  Constants.expoConfig?.extra?.supabaseAnonKey ||
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-  "your-anon-key";
+// Get Supabase credentials from environment configuration
+const SUPABASE_URL = ENV_CONFIG.SUPABASE_URL;
+const SUPABASE_ANON_KEY = ENV_CONFIG.SUPABASE_ANON_KEY;
 
 export class SupabaseService {
   private static client: SupabaseClient<Database> | null = null;
@@ -43,12 +37,21 @@ export class SupabaseService {
    * Check if Supabase is properly configured
    */
   static isConfigured(): boolean {
-    return (
+    const isConfigured =
       SUPABASE_URL !== "https://your-project.supabase.co" &&
       SUPABASE_ANON_KEY !== "your-anon-key" &&
       SUPABASE_URL &&
-      SUPABASE_ANON_KEY
-    );
+      SUPABASE_ANON_KEY;
+
+    if (__DEV__) {
+      console.log("🔍 Supabase Configuration Check:", {
+        SUPABASE_URL: SUPABASE_URL ? "✅ Set" : "❌ Missing",
+        SUPABASE_ANON_KEY: SUPABASE_ANON_KEY ? "✅ Set" : "❌ Missing",
+        isConfigured: isConfigured ? "✅ Ready" : "❌ Not configured",
+      });
+    }
+
+    return isConfigured;
   }
 
   /**
@@ -66,9 +69,12 @@ export class SupabaseService {
       try {
         this.client = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
         this.isInitialized = true;
-        console.log("Supabase client initialized successfully");
+
+        if (__DEV__) {
+          console.log("✅ Supabase client initialized successfully");
+        }
       } catch (error) {
-        console.error("Failed to initialize Supabase client:", error);
+        console.error("❌ Failed to initialize Supabase client:", error);
         return null;
       }
     }

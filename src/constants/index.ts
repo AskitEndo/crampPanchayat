@@ -2,11 +2,69 @@
 // Privacy-first period tracking app configuration
 
 import { EmojiType, SymptomType, StorageKeys } from "../types";
+import Constants from "expo-constants";
+
+// Environment Configuration - Compatible with both Expo Go and APK builds
+// Try process.env first (for development/Expo Go), then fall back to Constants (for production APK)
+export const ENV_CONFIG = {
+  SUPABASE_URL:
+    process.env.EXPO_PUBLIC_SUPABASE_URL ||
+    Constants.expoConfig?.extra?.SUPABASE_URL ||
+    "",
+  SUPABASE_ANON_KEY:
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+    Constants.expoConfig?.extra?.SUPABASE_ANON_KEY ||
+    "",
+  APP_ENV:
+    process.env.EXPO_PUBLIC_APP_ENV ||
+    Constants.expoConfig?.extra?.APP_ENV ||
+    "development",
+  APP_VERSION:
+    process.env.EXPO_PUBLIC_APP_VERSION ||
+    Constants.expoConfig?.extra?.APP_VERSION ||
+    "1.0.0",
+  UPI_ID:
+    process.env.EXPO_PUBLIC_UPI_ID || Constants.expoConfig?.extra?.UPI_ID || "",
+} as const;
+
+// Debug environment variables (only in development)
+if (__DEV__) {
+  console.log("🔧 Environment Variables Debug:");
+  console.log("Using process.env:", {
+    SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL
+      ? "✅ Set"
+      : "❌ Missing",
+    SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+      ? "✅ Set"
+      : "❌ Missing",
+    APP_ENV: process.env.EXPO_PUBLIC_APP_ENV || "❌ Missing",
+    APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION || "❌ Missing",
+    UPI_ID: process.env.EXPO_PUBLIC_UPI_ID ? "✅ Set" : "❌ Missing",
+  });
+  console.log("Using Constants.expoConfig:", {
+    SUPABASE_URL: Constants.expoConfig?.extra?.SUPABASE_URL
+      ? "✅ Set"
+      : "❌ Missing",
+    SUPABASE_ANON_KEY: Constants.expoConfig?.extra?.SUPABASE_ANON_KEY
+      ? "✅ Set"
+      : "❌ Missing",
+    APP_ENV: Constants.expoConfig?.extra?.APP_ENV || "❌ Missing",
+    APP_VERSION: Constants.expoConfig?.extra?.APP_VERSION || "❌ Missing",
+    UPI_ID: Constants.expoConfig?.extra?.UPI_ID ? "✅ Set" : "❌ Missing",
+  });
+  console.log("Final ENV_CONFIG:", {
+    SUPABASE_URL: ENV_CONFIG.SUPABASE_URL ? "✅ Set" : "❌ Missing",
+    SUPABASE_ANON_KEY: ENV_CONFIG.SUPABASE_ANON_KEY ? "✅ Set" : "❌ Missing",
+    APP_ENV: ENV_CONFIG.APP_ENV,
+    APP_VERSION: ENV_CONFIG.APP_VERSION,
+    UPI_ID: ENV_CONFIG.UPI_ID ? "✅ Set" : "❌ Missing",
+  });
+}
 
 // App Configuration
 export const APP_CONFIG = {
   NAME: "CrampPanchayat",
-  VERSION: "1.0.0",
+  VERSION: ENV_CONFIG.APP_VERSION,
   PRIVACY_POLICY_URL:
     "https://github.com/AskitEndo/crampPanchayat/blob/main/PRIVACY.md",
   TERMS_URL: "https://github.com/AskitEndo/crampPanchayat/blob/main/PRIVACY.md",
@@ -261,11 +319,11 @@ export const CALENDAR_CONFIG = {
 
 // UPI Donation Configuration
 export const UPI_CONFIG = {
-  UPI_ID: "developer@cramppanchayat.upi", // Replace with actual UPI ID
+  UPI_ID: ENV_CONFIG.UPI_ID || "animatedaskit5459@okicici", // Fallback UPI ID
   DONATION_AMOUNTS: [5, 10, 20, 50, 100, 200, 500] as const,
   CURRENCY: "INR",
   MERCHANT_NAME: "CrampPanchayat Developer",
-  PAYMENT_DESCRIPTION: "Support CrampPanchayat Development",
+  PAYMENT_DESCRIPTION: "Support sCrampPanchayat Development",
 } as const;
 
 // Notification Configuration
