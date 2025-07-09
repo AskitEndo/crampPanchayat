@@ -17,7 +17,7 @@ web-build/
 # Configuration files with sensitive data
 eas.json
 app.json
-
+app.config.js
 # Native
 *.orig.*
 *.jks

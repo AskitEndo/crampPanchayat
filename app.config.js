@@ -32,6 +32,9 @@ export default {
       APP_ENV: process.env.EXPO_PUBLIC_APP_ENV || "",
       APP_VERSION: process.env.EXPO_PUBLIC_APP_VERSION || "1.0.0",
       UPI_ID: process.env.EXPO_PUBLIC_UPI_ID || "",
+      eas: {
+        projectId: "b5e41d5e-5ea7-4dad-a26e-943ec4d0cc24",
+      },
     },
   },
 };
