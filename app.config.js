@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   expo: {
     name: "CrampPanchayat",
     slug: "cramppanchayat",
@@ -17,11 +17,12 @@ export default {
       bundleIdentifier: "com.cramppanchayat.app",
     },
     android: {
+      package: "com.cramppanchayat.app",
+      versionCode: 1,
       adaptiveIcon: {
         foregroundImage: "./src/assets/images/app-icon.png",
         backgroundColor: "#E91E63",
       },
-      package: "com.cramppanchayat.app",
     },
     web: {
       bundler: "metro",

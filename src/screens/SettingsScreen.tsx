@@ -44,8 +44,6 @@ const SettingsScreen: React.FC = () => {
   const loadCloudAccountsCount = useCallback(async () => {
     try {
       setStatsLoading(true);
-      // Add haptic feedback for user interaction
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       const { SupabaseService } = await import("../services/supabase");
 
