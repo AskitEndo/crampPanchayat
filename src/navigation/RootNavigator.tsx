@@ -32,7 +32,10 @@ const TabNavigator: React.FC = () => {
     <Tab.Navigator
       screenListeners={{
         tabPress: () => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          // Add haptic feedback for tab presses with error handling
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
+            // Silently catch haptics errors (e.g., on simulator or if haptics unavailable)
+          });
         },
       }}
       screenOptions={({ route }) => ({
@@ -127,6 +130,14 @@ const RootNavigator: React.FC = () => {
         screenOptions={{
           headerShown: false,
           cardStyle: { backgroundColor: "transparent" },
+        }}
+        screenListeners={{
+          focus: () => {
+            // Add haptic feedback for screen navigation
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {
+              // Silently catch haptics errors (e.g., on simulator)
+            });
+          },
         }}
       >
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
