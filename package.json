@@ -57,6 +57,7 @@
     "@react-navigation/stack": "^6.4.1",
     "@supabase/supabase-js": "^2.43.5",
     "date-fns": "^3.6.0",
+    "dotenv": "^17.2.0",
     "expo": "~51.0.28",
     "expo-clipboard": "~6.0.3",
     "expo-constants": "~16.0.2",
