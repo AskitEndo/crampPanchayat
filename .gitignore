@@ -14,13 +14,10 @@ package-lock.json
 dist/
 web-build/
 
-# Build directories
-android
-
 # Configuration files with sensitive data
 eas.json
 app.json
-app.config.js
+
 # Native
 *.orig.*
 *.jks
