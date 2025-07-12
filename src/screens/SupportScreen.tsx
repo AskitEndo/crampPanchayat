@@ -87,12 +87,35 @@ const SupportScreen: React.FC = () => {
     }
   };
 
-  const openGitHub = () => {
-    openLink("https://github.com/AskitEndo", "GitHub");
+  const openGitHub = async () => {
+    const url = "https://github.com/AskitEndo";
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "Could not open GitHub. Please ensure you have a web browser installed."
+      );
+    }
   };
 
-  const openLinkedIn = () => {
-    openLink("https://linkedin.com/in/askitendo", "LinkedIn");
+  const openLinkedIn = async () => {
+    const webUrl = "https://linkedin.com/in/askitendo";
+    const appUrl = "linkedin://in/askitendo";
+
+    try {
+      const supported = await Linking.canOpenURL(appUrl);
+      if (supported) {
+        await Linking.openURL(appUrl);
+      } else {
+        await Linking.openURL(webUrl);
+      }
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "Could not open LinkedIn. Please ensure you have a web browser or the LinkedIn app installed."
+      );
+    }
   };
 
   const showDonationInfo = () => {
