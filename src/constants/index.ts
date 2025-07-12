@@ -4,8 +4,6 @@
 import { EmojiType, SymptomType, StorageKeys } from "../types";
 import Constants from "expo-constants";
 
-// Environment Configuration - Compatible with both Expo Go and APK builds
-// Try process.env first (for development/Expo Go), then fall back to Constants (for production APK)
 export const ENV_CONFIG = {
   SUPABASE_URL:
     process.env.EXPO_PUBLIC_SUPABASE_URL ||
@@ -366,31 +364,31 @@ export const ANALYTICS_CONFIG = {
   ANONYMOUS_ID_PREFIX: "anon_",
 } as const;
 
-// Theme Colors
+// Theme Colors - Updated with Pink Theme
 export const THEME_COLORS = {
   light: {
-    primary: "#E91E63",
-    secondary: "#FF4081",
-    background: "#FFFFFF",
-    surface: "#F5F5F5",
+    primary: "#FF69B4", // Hot pink
+    secondary: "#FFB6C1", // Light pink
+    background: "#FFF0F5", // Lavender blush
+    surface: "#FFFFFF",
     text: "#212121",
     textSecondary: "#757575",
     error: "#F44336",
     success: "#4CAF50",
     warning: "#FF9800",
-    accent: "#9C27B0",
+    accent: "#FF1493", // Deep pink
   },
   dark: {
-    primary: "#F48FB1",
-    secondary: "#FF80AB",
-    background: "#121212",
-    surface: "#1E1E1E",
+    primary: "#FF69B4", // Hot pink
+    secondary: "#FFB6C1", // Light pink
+    background: "#2D1B35", // Dark purple-pink
+    surface: "#3D1B42",
     text: "#FFFFFF",
-    textSecondary: "#B0B0B0",
+    textSecondary: "#E1BEE7",
     error: "#CF6679",
     success: "#81C784",
     warning: "#FFB74D",
-    accent: "#CE93D8",
+    accent: "#FF1493", // Deep pink
   },
 } as const;
 
