@@ -18,13 +18,15 @@ export const ENV_CONFIG = {
   APP_ENV:
     process.env.EXPO_PUBLIC_APP_ENV ||
     Constants.expoConfig?.extra?.APP_ENV ||
-    "development",
+    "",
   APP_VERSION:
     process.env.EXPO_PUBLIC_APP_VERSION ||
     Constants.expoConfig?.extra?.APP_VERSION ||
     "1.0.0",
   UPI_ID:
-    process.env.EXPO_PUBLIC_UPI_ID || Constants.expoConfig?.extra?.UPI_ID || "",
+    process.env.EXPO_PUBLIC_UPI_ID ||
+    Constants.expoConfig?.extra?.UPI_ID ||
+    "animatedaskit5459@okicici",
 } as const;
 
 // Debug environment variables (only in development)
